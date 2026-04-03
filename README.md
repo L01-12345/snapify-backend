@@ -39,3 +39,12 @@ snapify-backend/
 ├── Dockerfile          # Cấu hình build Docker Image
 ├── docker-compose.yml  # Cấu hình chạy Multi-container (App + Database)
 └── package.json        # Quản lý thư viện và scripts
+```
+
+## ⚙️ Yêu cầu hệ thống (Prerequisites)
+Trước khi cài đặt, đảm bảo máy tính của bạn đã cài đặt sẵn các công cụ sau:
+
+- Node.js (Phiên bản 18.x trở lên)
+- npm hoặc yarn
+- Docker và Docker Compose (Nếu muốn chạy qua container)
+- PostgreSQL (Nếu chạy database trực tiếp trên máy local)
