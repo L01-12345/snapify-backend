@@ -48,3 +48,80 @@ Trước khi cài đặt, đảm bảo máy tính của bạn đã cài đặt s
 - npm hoặc yarn
 - Docker và Docker Compose (Nếu muốn chạy qua container)
 - PostgreSQL (Nếu chạy database trực tiếp trên máy local)
+
+## 🚀 Hướng dẫn cài đặt và chạy dự án
+
+Cách 1: Chạy bằng Docker (Khuyên dùng)
+
+Clone dự án về máy:
+
+```Bash
+git clone <repository-url>
+cd snapify-backend
+Chạy Docker Compose:
+```
+
+```Bash
+docker-compose up -d --build
+Lệnh này sẽ tự động tải image PostgreSQL, build image cho Node.js app và khởi chạy cả hai trên cổng 3000 và 5432.
+```
+
+Cách 2: Chạy Local (Môi trường Development)
+Cài đặt thư viện:
+
+```Bash
+npm install
+Cấu hình biến môi trường:
+```
+
+Copy file mẫu .env.example thành file .env:
+
+```Bash
+cp .env.example .env
+Mở file .env và cập nhật chuỗi kết nối Database DATABASE_URL theo cấu hình PostgreSQL trên máy của bạn.
+```
+
+Khởi tạo Database với Prisma:
+
+Tạo các bảng trong database dựa trên schema:
+
+```Bash
+npx prisma db push
+```
+(Tùy chọn) Khởi tạo Prisma Client:
+```
+npx prisma generate
+```
+Khởi chạy Server:
+
+Chạy chế độ Dev (tự động reload khi code thay đổi):
+
+```Bash
+npm run dev
+```
+
+Chạy chế độ Production:
+
+```bash
+npm start
+```
+Server sẽ khởi chạy tại: http://localhost:3000
+
+## 📖 Tài liệu API (API Documentation)
+Dự án tích hợp sẵn Swagger để giúp Frontend/Mobile team dễ dàng tra cứu và test thử API.
+
+Sau khi server chạy thành công, hãy truy cập đường dẫn sau trên trình duyệt: http://localhost:3000/api-docs
+
+## Các Scripts có sẵn (Available Scripts)
+
+Trong quá trình phát triển, bạn có thể sử dụng các lệnh npm sau:
+
+`npm run dev`: Chạy server bằng Nodemon (Hot-reload).
+
+`npm start`: Chạy server bằng Node tiêu chuẩn.
+
+`npm run prisma:generate`: Tạo lại Prisma Client sau khi thay đổi file schema.prisma.
+
+`npm run prisma:push`: Áp dụng cấu trúc schema mới nhất xuống Database.
+
+`npm run prisma:studio`: Mở giao diện web để xem và quản lý dữ liệu trực tiếp trong Database (http://localhost:5555).
