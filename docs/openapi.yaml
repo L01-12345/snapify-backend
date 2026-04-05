@@ -1,0 +1,357 @@
+openapi: 3.0.0
+info:
+  title: Snapify API
+  version: 1.0.0
+  description: >
+    API Documentation for Snapify Backend (Node.js, Express, Prisma, MySQL).
+    Provides endpoints for Snap-to-Note, Note Management, Auto Categorization,
+    and Batch PDF generation.
+
+servers:
+  - url: http://localhost:3000/api
+    description: Local Development Server
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    SuccessResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: success
+        message:
+          type: string
+          example: Operation successful
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: error
+        message:
+          type: string
+          example: Internal server error
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        displayName:
+          type: string
+        avatarUrl:
+          type: string
+          nullable: true
+    Note:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        content:
+          type: string
+        status:
+          type: string
+          enum: [PENDING, ACTIONED, ARCHIVED]
+
+security:
+  - bearerAuth: []
+
+paths:
+  # ====================================================
+  # 1. AUTHENTICATION ROUTES
+  # ====================================================
+  /auth/register:
+    post:
+      tags: [Authentication]
+      summary: Register a new account
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, displayName]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: user@example.com
+                password:
+                  type: string
+                  format: password
+                  example: snapify123
+                displayName:
+                  type: string
+                  example: John Doe
+      responses:
+        "201":
+          description: User registered successfully
+
+  /auth/login:
+    post:
+      tags: [Authentication]
+      summary: Login to the system
+      description: Authenticate user and return a JWT Token.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  example: user@example.com
+                password:
+                  type: string
+                  example: snapify123
+      responses:
+        "200":
+          description: Login successful, returns JWT token
+
+  /auth/forgot-password:
+    post:
+      tags: [Authentication]
+      summary: Request password recovery
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  example: user@example.com
+      responses:
+        "200":
+          description: Password recovery instructions sent
+
+  # ====================================================
+  # 2. USER ROUTES
+  # ====================================================
+  /users/profile:
+    get:
+      tags: [Users]
+      summary: Get user profile
+      responses:
+        "200":
+          description: Successful operation
+    put:
+      tags: [Users]
+      summary: Update user profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                displayName:
+                  type: string
+                avatarUrl:
+                  type: string
+      responses:
+        "200":
+          description: Profile updated successfully
+
+  # ====================================================
+  # 3. NOTES ROUTES
+  # ====================================================
+  /notes/snap:
+    post:
+      tags: [Notes]
+      summary: Snap-to-Note (Upload image)
+      description:
+        Upload an image file. The system will perform OCR to extract text and
+        create a new Note.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                image:
+                  type: string
+                  format: binary
+                  description: Image file (JPG, PNG)
+      responses:
+        "201":
+          description: Image processed and Note created successfully
+
+  /notes/search:
+    get:
+      tags: [Notes]
+      summary: Search notes by keyword
+      parameters:
+        - in: query
+          name: q
+          schema:
+            type: string
+          required: true
+          description: Keyword to search for
+      responses:
+        "200":
+          description: Successful operation
+
+  /notes:
+    get:
+      tags: [Notes]
+      summary: Get list of notes (Dashboard)
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [PENDING, ACTIONED, ARCHIVED]
+          description: Filter notes by status
+      responses:
+        "200":
+          description: Successful operation
+
+  /notes/{id}:
+    get:
+      tags: [Notes]
+      summary: Get note details
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Successful operation
+    put:
+      tags: [Notes]
+      summary: Update a note
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Note"
+      responses:
+        "200":
+          description: Note updated successfully
+
+  /notes/{id}/actions:
+    get:
+      tags: [Notes]
+      summary: Get Smart Actions
+      description:
+        Retrieve smart actions (Call, Email, Link) extracted from the note
+        content.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Successful operation
+
+  /notes/{id}/categorize:
+    post:
+      tags: [Notes]
+      summary: Auto Categorize (Smart Folder)
+      description:
+        Trigger AI to analyze the note and automatically assign it to a suitable
+        folder.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Note categorized successfully
+
+  # ====================================================
+  # 4. FOLDERS ROUTES
+  # ====================================================
+  /folders:
+    get:
+      tags: [Folders]
+      summary: Get user folders
+      responses:
+        "200":
+          description: Successful operation
+    post:
+      tags: [Folders]
+      summary: Create a new manual folder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                  example: October Receipts
+                description:
+                  type: string
+      responses:
+        "201":
+          description: Folder created successfully
+
+  # ====================================================
+  # 5. BATCHES ROUTES
+  # ====================================================
+  /batches:
+    get:
+      tags: [Batches]
+      summary: Get list of batch PDFs
+      responses:
+        "200":
+          description: Successful operation
+    post:
+      tags: [Batches]
+      summary: Batch Scan to PDF
+      description:
+        Provide an array of Note IDs. The system will combine their images into
+        a single PDF document.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [noteIds, title]
+              properties:
+                noteIds:
+                  type: array
+                  items:
+                    type: string
+                  example: ["note-1", "note-2"]
+                title:
+                  type: string
+                  example: Snapify Contract 2026
+      responses:
+        "201":
+          description: Batch PDF generated successfully

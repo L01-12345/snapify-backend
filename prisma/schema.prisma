@@ -1,0 +1,176 @@
+// ==========================================
+// 1. CẤU HÌNH GENERATOR & DATASOURCE
+// ==========================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql" // Có thể đổi thành "mysql" nếu bạn dùng MySQL
+  url      = env("DATABASE_URL")
+}
+
+// ==========================================
+// 2. ĐỊNH NGHĨA CÁC ENUMS
+// ==========================================
+
+enum FolderType {
+  MANUAL
+  SMART
+}
+
+enum NoteStatus {
+  PENDING
+  ACTIONED
+  ARCHIVED
+}
+
+enum ActionType {
+  CALL
+  EMAIL
+  LINK
+  CALENDAR
+}
+
+enum ExtractedEntityType {
+  PHONE
+  EMAIL
+  URL
+}
+
+// ==========================================
+// 3. ĐỊNH NGHĨA CÁC MODEL (ENTITIES)
+// ==========================================
+
+model User {
+  id           String   @id @default(uuid()) @map("user_id")
+  displayName  String   @map("display_name")
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  avatarUrl    String?  @map("avatar_url") // Dấu ? thể hiện Nullable
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relationships
+  notes    Note[]
+  folders  Folder[]
+  batches  BatchDocument[]
+  searches SearchHistory[]
+
+  @@map("users") // Tên bảng trong DB
+}
+
+model Folder {
+  id          String     @id @default(uuid()) @map("folder_id")
+  userId      String     @map("user_id")
+  name        String     @map("folder_name")
+  type        FolderType
+  description String?
+  createdAt   DateTime   @default(now()) @map("created_at")
+
+  // Relationships
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notes Note[]
+
+  @@map("folders")
+}
+
+model Note {
+  id        String     @id @default(uuid()) @map("note_id")
+  userId    String     @map("user_id")
+  folderId  String?    @map("folder_id") // Nullable vì Note có thể nằm ngoài Folder
+  title     String?
+  content   String?    @db.Text // Khai báo @db.Text để lưu chuỗi dài (OCR Text)
+  status    NoteStatus @default(PENDING)
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+
+  // Relationships
+  user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  folder   Folder?           @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  images   NoteImage[]
+  entities ExtractedEntity[]
+  actions  SmartAction[]
+
+  @@map("notes")
+}
+
+model NoteImage {
+  id         String @id @default(uuid()) @map("image_id")
+  noteId     String @map("note_id")
+  imageUrl   String @map("image_url")
+  orderIndex Int    @default(0) @map("order_index")
+
+  // Relationships
+  note       Note        @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  batchItems BatchItem[]
+
+  @@map("note_images")
+}
+
+model ExtractedEntity {
+  id     String              @id @default(uuid()) @map("entity_id")
+  noteId String              @map("note_id")
+  type   ExtractedEntityType
+  value  String
+
+  // Relationships
+  note Note @relation(fields: [noteId], references: [id], onDelete: Cascade)
+
+  @@map("extracted_entities")
+}
+
+model SmartAction {
+  id       String     @id @default(uuid()) @map("action_id")
+  noteId   String     @map("note_id")
+  type     ActionType
+  value    String
+  metadata Json? // Dùng kiểu JSON để lưu data linh hoạt (vd: event details cho Calendar)
+
+  // Relationships
+  note Note @relation(fields: [noteId], references: [id], onDelete: Cascade)
+
+  @@map("smart_actions")
+}
+
+model BatchDocument {
+  id        String   @id @default(uuid()) @map("batch_id")
+  userId    String   @map("user_id")
+  title     String
+  pdfUrl    String?  @map("pdf_url")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relationships
+  user  User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items BatchItem[]
+
+  @@map("batch_documents")
+}
+
+model BatchItem {
+  id         String @id @default(uuid()) @map("item_id")
+  batchId    String @map("batch_id")
+  imageId    String @map("image_id")
+  pageNumber Int    @map("page_number")
+
+  // Relationships
+  batch BatchDocument @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  image NoteImage     @relation(fields: [imageId], references: [id], onDelete: Restrict)
+
+  // Ràng buộc: Một file PDF không thể có 2 trang trùng số thứ tự
+  @@unique([batchId, pageNumber])
+  @@map("batch_items")
+}
+
+model SearchHistory {
+  id        String   @id @default(uuid()) @map("search_id")
+  userId    String   @map("user_id")
+  keyword   String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relationships
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("search_histories")
+}

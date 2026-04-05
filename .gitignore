@@ -1,0 +1,77 @@
+
+# ==========================================
+# 1. NODE.JS & DEPENDENCIES
+# ==========================================
+# Không bao giờ push thư mục node_modules lên Git vì nó rất nặng và có thể tạo lại bằng 'npm install'
+node_modules/
+jspm_packages/
+
+# ==========================================
+# 2. MÔI TRƯỜNG & BẢO MẬT (QUAN TRỌNG NHẤT)
+# ==========================================
+# Bỏ qua tất cả các file chứa cấu hình mật khẩu, database thật
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# LƯU Ý: Không thêm file .env.example vào đây vì team cần file này làm mẫu
+
+# ==========================================
+# 3. LOGS (NHẬT KÝ HỆ THỐNG)
+# ==========================================
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ==========================================
+# 4. DATABASE & DOCKER VOLUMES
+# ==========================================
+# Bỏ qua các thư mục chứa dữ liệu cục bộ của Docker để tránh làm phình to repo
+mysql_data/
+pgdata/
+
+# ==========================================
+# 5. UPLOADS & TẠM THỜI (TEMP FILES)
+# ==========================================
+# Bỏ qua các file ảnh người dùng upload hoặc file PDF sinh ra trong quá trình dev
+uploads/
+temp/
+tmp/
+public/uploads/
+
+# ==========================================
+# 6. BUILD & TESTING
+# ==========================================
+# Bỏ qua các file sinh ra trong quá trình build hoặc test
+dist/
+build/
+coverage/
+.nyc_output/
+.next/
+out/
+
+# ==========================================
+# 7. IDEs & HỆ ĐIỀU HÀNH
+# ==========================================
+# Các file rác do hệ điều hành (Mac/Windows) tự sinh ra
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Cấu hình cài đặt riêng của các Editor (VS Code, WebStorm...)
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

@@ -1,0 +1,40 @@
+version: "3.8"
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: snapify_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root # Mật khẩu tài khoản root
+      MYSQL_DATABASE: snapify_db # Tên database
+      MYSQL_USER: snapify_user # Tên user
+      MYSQL_PASSWORD: snapify_password # Mật khẩu của user
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql # Mount volume để không mất data khi tắt container
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  api:
+    build: .
+    container_name: snapify_api
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      # 'db' ở đây chính là tên của service MySQL ở trên
+      DATABASE_URL: "mysql://snapify_user:snapify_password@db:3306/snapify_db?charset=utf8mb4"
+      PORT: 3000
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - .:/app
+      - /app/node_modules
+
+volumes:
+  mysql_data:
