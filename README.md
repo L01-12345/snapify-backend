@@ -58,13 +58,13 @@ Clone dự án về máy:
 ```Bash
 git clone <repository-url>
 cd snapify-backend
-Chạy Docker Compose:
 ```
+Chạy Docker Compose:
 
 ```Bash
-docker-compose up -d --build
-Lệnh này sẽ tự động tải image PostgreSQL, build image cho Node.js app và khởi chạy cả hai trên cổng 3000 và 5432.
+docker-compose up --build
 ```
+Lệnh này sẽ tự động tải image MySQL, build image cho Node.js app và khởi chạy cả hai trên cổng 3000 và 5432.
 
 Cách 2: Chạy Local (Môi trường Development)
 Cài đặt thư viện:
