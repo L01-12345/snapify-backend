@@ -1,24 +1,32 @@
 // src/services/note.service.js
 const prisma = require("../utils/prisma.util");
+const cloudflareService = require("../services/cloudflare.service");
+const geminiService = require("../services/gemini.service");
 
 const processImageToNote = async (userId, file) => {
-	// TODO: Tích hợp API Cloud Storage (S3/Firebase) để upload file và lấy URL thật
-	const mockImageUrl = `https://storage.snapify.com/mock-image-${Date.now()}.jpg`;
+	// LUỒNG CHÍNH CỦA TÍNH NĂNG SNAP-TO-NOTE:
 
-	// TODO: Gọi API AI (Google Vision OCR) để trích xuất chữ
-	const mockOCRText =
-		"Đây là nội dung văn bản giả lập được OCR bóc tách từ hình ảnh...";
+	// 1. Gọi service để đẩy ảnh thật lên Cloudflare R2
+	const imageUrl = await cloudflareService.uploadFileToR2(file, "notes");
 
-	// 1. Tạo Note mới với nội dung OCR
+	// 2. Gửi ảnh (dạng Buffer) song song sang Gemini AI để trích xuất chữ và generate nội dung
+	// Chúng ta dùng file.buffer và file.mimetype nhận từ controller
+	const aiGeneratedData = await geminiService.generateNoteFromImage(
+		file.buffer,
+		file.mimetype,
+	);
+
+	// 3. Tạo Note mới trong Database với dữ liệu thật từ AI và R2
 	const newNote = await prisma.note.create({
 		data: {
 			userId,
-			title: "Ghi chú từ hình ảnh",
-			content: mockOCRText,
-			status: "PENDING",
+			// Dữ liệu Title và Content hoàn chỉnh từ AI
+			title: aiGeneratedData.title,
+			content: aiGeneratedData.content,
+			status: "PENDING", // Mặc định là chờ xử lý (Actioned)
 			images: {
 				create: {
-					imageUrl: mockImageUrl,
+					imageUrl: imageUrl, // Sử dụng URL thật từ Cloudflare
 					orderIndex: 0,
 				},
 			},
