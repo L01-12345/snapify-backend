@@ -71,7 +71,8 @@ Bước 1: Chuẩn bị môi trường (Prerequisites)
 ```bash
 # 1. Cấu hình Server & Database
 PORT=3000
-DATABASE_URL="mysql://root:snapify_password@snapify_db:3306/snapify?charset=utf8mb4"
+# DATABASE_URL="mysql://root:snapify_password@snapify_db:3306/snapify?charset=utf8mb4"
+DATABASE_URL="postgresql://postgres:snapify_password@snapify_db:5432/snapify_db?schema=public"
 
 # 2. Cấu hình Bảo mật JWT
 JWT_SECRET="Dien_Mot_Chuoi_Bi_Mat_Bat_Ky_Vao_Day"
@@ -103,8 +104,8 @@ Ghi chú:
 
 Bước 3: Khởi tạo Database (Prisma)
 
-Khi MySQL container đã chạy lên, bạn cần đẩy cấu trúc bảng (Schema) vào
-Database. Chạy lệnh sau để ép Prisma tạo bảng chuẩn xác:
+Khi MySQL hoặc PostgresSQL container đã chạy lên, bạn cần đẩy cấu trúc bảng
+(Schema) vào Database. Chạy lệnh sau để ép Prisma tạo bảng chuẩn xác:
 
 ```Bash
 docker exec -it snapify_api npx prisma db push
@@ -118,8 +119,16 @@ Bước 4: Nạp dữ liệu mẫu (Seed Data)
 Để có sẵn User, Folder, Notes và PDF test trên app, chúng ta sẽ nạp file SQL
 mẫu. Lưu ý copy y hệt lệnh này để đảm bảo tiếng Việt (UTF-8) không bị lỗi font:
 
+Nếu là MySQL:
+
 ```Bash
 docker exec -i snapify_db mysql -u root -proot --default-character-set=utf8mb4 snapify < mysql/mock-data.sql
+```
+
+Nếu là PostgresSQL:
+
+```bash
+docker exec -i snapify_db psql -U postgres -d snapify_db < postgresql/seed.sql
 ```
 
 Bước 5: Kiểm tra
@@ -129,6 +138,12 @@ Node.js có báo lỗi gì không, chạy lệnh:
 
 ```Bash
 docker logs snapify_api -f
+```
+
+Kiểm tra thông qua Prisma Studio:
+
+```bash
+docker exec -it snapify_api npx prisma studio
 ```
 
 Nếu thấy dòng `🚀 Server running on port 3000`, bạn đã thành công! Bấm Ctrl + C
