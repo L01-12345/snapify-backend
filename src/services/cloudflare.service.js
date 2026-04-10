@@ -74,6 +74,33 @@ const uploadFileToR2 = async (file, folder = "uploads") => {
 	}
 };
 
+const uploadBufferToR2 = async (
+	buffer,
+	mimeType,
+	extension,
+	folder = "batches",
+) => {
+	try {
+		const crypto = require("crypto");
+		const randomString = crypto.randomBytes(8).toString("hex");
+		const fileName = `${folder}/snapify-batch-${Date.now()}-${randomString}.${extension}`;
+
+		const command = new PutObjectCommand({
+			Bucket: process.env.R2_BUCKET_NAME,
+			Key: fileName,
+			Body: buffer,
+			ContentType: mimeType,
+		});
+
+		await s3Client.send(command);
+		return `${process.env.R2_PUBLIC_URL}/${fileName}`;
+	} catch (error) {
+		console.error("Lỗi upload Buffer lên R2:", error);
+		throw new Error("Không thể tải file PDF lên hệ thống.");
+	}
+};
+
 module.exports = {
 	uploadFileToR2,
+	uploadBufferToR2,
 };

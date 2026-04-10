@@ -33,6 +33,4 @@ const upload = multer({
 // Xuất ra module để xử lý 1 file duy nhất có tên field là 'image' trong form-data
 const uploadImage = upload.single("image");
 
-module.exports = {
-	uploadImage,
-};
+module.exports = upload;
