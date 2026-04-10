@@ -7,7 +7,7 @@ info:
     Authentication, Users, Notes, Folders, and Batch PDFs.
 
 servers:
-  - url: https://snapify-api-xxxx.onrender.com/api
+  - url: https://snapify-api-tdn8.onrender.com/api
     description: Production Server (Render)
   - url: http://localhost:3000/api
     description: Local Development Server
