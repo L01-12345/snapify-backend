@@ -1,11 +1,10 @@
 openapi: 3.0.0
 info:
   title: Snapify API
-  version: 1.0.0
+  version: 1.1.0
   description: >
-    API Documentation for Snapify Backend (Node.js, Express, Prisma, MySQL).
-    Provides endpoints for Snap-to-Note, Note Management, Auto Categorization,
-    and Batch PDF generation.
+    API Documentation for Snapify Backend. Includes endpoints for
+    Authentication, Users, Notes, Folders, and Batch PDFs.
 
 servers:
   - url: http://localhost:3000/api
@@ -28,15 +27,6 @@ components:
         message:
           type: string
           example: Operation successful
-    ErrorResponse:
-      type: object
-      properties:
-        status:
-          type: string
-          example: error
-        message:
-          type: string
-          example: Internal server error
     User:
       type: object
       properties:
@@ -58,9 +48,39 @@ components:
           type: string
         content:
           type: string
+        folderId:
+          type: string
+          nullable: true
         status:
           type: string
           enum: [PENDING, ACTIONED, ARCHIVED]
+    Folder:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        type:
+          type: string
+          enum: [MANUAL, SMART]
+    BatchDocument:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        pdfUrl:
+          type: string
+        folderId:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
 
 security:
   - bearerAuth: []
@@ -84,11 +104,9 @@ paths:
               properties:
                 email:
                   type: string
-                  format: email
                   example: user@example.com
                 password:
                   type: string
-                  format: password
                   example: snapify123
                 displayName:
                   type: string
@@ -101,7 +119,6 @@ paths:
     post:
       tags: [Authentication]
       summary: Login to the system
-      description: Authenticate user and return a JWT Token.
       security: []
       requestBody:
         required: true
@@ -120,26 +137,6 @@ paths:
       responses:
         "200":
           description: Login successful, returns JWT token
-
-  /auth/forgot-password:
-    post:
-      tags: [Authentication]
-      summary: Request password recovery
-      security: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [email]
-              properties:
-                email:
-                  type: string
-                  example: user@example.com
-      responses:
-        "200":
-          description: Password recovery instructions sent
 
   # ====================================================
   # 2. USER ROUTES
@@ -176,9 +173,6 @@ paths:
     post:
       tags: [Notes]
       summary: Snap-to-Note (Upload image)
-      description:
-        Upload an image file. The system will perform OCR to extract text and
-        create a new Note.
       requestBody:
         required: true
         content:
@@ -189,7 +183,6 @@ paths:
                 image:
                   type: string
                   format: binary
-                  description: Image file (JPG, PNG)
       responses:
         "201":
           description: Image processed and Note created successfully
@@ -204,7 +197,6 @@ paths:
           schema:
             type: string
           required: true
-          description: Keyword to search for
       responses:
         "200":
           description: Successful operation
@@ -212,17 +204,39 @@ paths:
   /notes:
     get:
       tags: [Notes]
-      summary: Get list of notes (Dashboard)
+      summary: Get list of notes
       parameters:
         - in: query
           name: status
           schema:
             type: string
             enum: [PENDING, ACTIONED, ARCHIVED]
-          description: Filter notes by status
       responses:
         "200":
           description: Successful operation
+    post:
+      tags: [Notes]
+      summary: Create a manual note
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title]
+              properties:
+                title:
+                  type: string
+                  example: Meeting Notes
+                content:
+                  type: string
+                  example: Discussed Q3 roadmap...
+                folderId:
+                  type: string
+                  nullable: true
+      responses:
+        "201":
+          description: Note created successfully
 
   /notes/{id}:
     get:
@@ -255,14 +269,9 @@ paths:
       responses:
         "200":
           description: Note updated successfully
-
-  /notes/{id}/actions:
-    get:
+    delete:
       tags: [Notes]
-      summary: Get Smart Actions
-      description:
-        Retrieve smart actions (Call, Email, Link) extracted from the note
-        content.
+      summary: Delete a note
       parameters:
         - in: path
           name: id
@@ -271,15 +280,12 @@ paths:
             type: string
       responses:
         "200":
-          description: Successful operation
+          description: Note deleted successfully
 
   /notes/{id}/categorize:
     post:
-      tags: [Notes]
-      summary: Auto Categorize (Smart Folder)
-      description:
-        Trigger AI to analyze the note and automatically assign it to a suitable
-        folder.
+      tags: [Notes - AI]
+      summary: Auto Categorize Note
       parameters:
         - in: path
           name: id
@@ -289,6 +295,20 @@ paths:
       responses:
         "200":
           description: Note categorized successfully
+
+  /notes/{id}/actions:
+    get:
+      tags: [Notes - AI]
+      summary: Get Smart Actions
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Successful operation
 
   # ====================================================
   # 4. FOLDERS ROUTES
@@ -302,7 +322,7 @@ paths:
           description: Successful operation
     post:
       tags: [Folders]
-      summary: Create a new manual folder
+      summary: Create a new folder
       requestBody:
         required: true
         content:
@@ -320,38 +340,129 @@ paths:
         "201":
           description: Folder created successfully
 
-  # ====================================================
-  # 5. BATCHES ROUTES
-  # ====================================================
-  /batches:
+  /folders/{id}:
     get:
-      tags: [Batches]
-      summary: Get list of batch PDFs
+      tags: [Folders]
+      summary: Get folder details (Includes notes list)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
       responses:
         "200":
           description: Successful operation
-    post:
-      tags: [Batches]
-      summary: Batch Scan to PDF
-      description:
-        Provide an array of Note IDs. The system will combine their images into
-        a single PDF document.
+    put:
+      tags: [Folders]
+      summary: Update folder details
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [noteIds, title]
               properties:
-                noteIds:
+                name:
+                  type: string
+                description:
+                  type: string
+      responses:
+        "200":
+          description: Folder updated successfully
+    delete:
+      tags: [Folders]
+      summary: Delete a folder (Moves notes to unassigned)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Folder deleted successfully
+
+  # ====================================================
+  # 5. BATCHES (PDF SCANNER) ROUTES
+  # ====================================================
+  /batches/scan:
+    post:
+      tags: [Batches (PDF Scanner)]
+      summary: Document Scanner (Upload multiple images -> 1 PDF)
+      description:
+        Upload an array of images (max 20). The system will check file
+        signatures, convert them into a single PDF, and upload it to Cloudflare
+        R2.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                images:
                   type: array
                   items:
                     type: string
-                  example: ["note-1", "note-2"]
+                    format: binary
+                  description: Array of image files (JPG, PNG)
                 title:
                   type: string
-                  example: Snapify Contract 2026
+                  example: Hợp đồng thuê nhà 2026
       responses:
         "201":
-          description: Batch PDF generated successfully
+          description: PDF generated and saved successfully
+
+  /batches:
+    get:
+      tags: [Batches (PDF Scanner)]
+      summary: Get list of all PDFs
+      responses:
+        "200":
+          description: Successful operation
+
+  /batches/{id}:
+    put:
+      tags: [Batches (PDF Scanner)]
+      summary: Update PDF metadata (Rename or Move to Folder)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  example: Đổi tên Hợp đồng mới
+                folderId:
+                  type: string
+                  nullable: true
+      responses:
+        "200":
+          description: PDF updated successfully
+    delete:
+      tags: [Batches (PDF Scanner)]
+      summary: Delete a PDF document
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: PDF deleted successfully

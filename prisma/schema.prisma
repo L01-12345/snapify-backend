@@ -70,8 +70,10 @@ model Folder {
   createdAt   DateTime   @default(now()) @map("created_at")
 
   // Relationships
-  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  notes Note[]
+  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notes   Note[]
+  batches BatchDocument[]
+  // batchDocuments BatchDocument[]
 
   @@map("folders")
 }
@@ -103,8 +105,8 @@ model NoteImage {
   orderIndex Int    @default(0) @map("order_index")
 
   // Relationships
-  note       Note        @relation(fields: [noteId], references: [id], onDelete: Cascade)
-  batchItems BatchItem[]
+  note Note @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  // batchItems BatchItem[]
 
   @@map("note_images")
 }
@@ -138,30 +140,32 @@ model BatchDocument {
   id        String   @id @default(uuid()) @map("batch_id")
   userId    String   @map("user_id")
   title     String
-  pdfUrl    String?  @map("pdf_url")
+  pdfUrl    String   @map("pdf_url")
   createdAt DateTime @default(now()) @map("created_at")
+  folderId  String?  @map("folder_id")
 
   // Relationships
-  user  User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  items BatchItem[]
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  folder Folder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  // items  BatchItem[]
 
   @@map("batch_documents")
 }
 
-model BatchItem {
-  id         String @id @default(uuid()) @map("item_id")
-  batchId    String @map("batch_id")
-  imageId    String @map("image_id")
-  pageNumber Int    @map("page_number")
+// model BatchItem {
+//   id         String @id @default(uuid()) @map("item_id")
+//   batchId    String @map("batch_id")
+//   imageId    String @map("image_id")
+//   pageNumber Int    @map("page_number")
 
-  // Relationships
-  batch BatchDocument @relation(fields: [batchId], references: [id], onDelete: Cascade)
-  image NoteImage     @relation(fields: [imageId], references: [id], onDelete: Restrict)
+//   // Relationships
+//   batch BatchDocument @relation(fields: [batchId], references: [id], onDelete: Cascade)
+//   image NoteImage     @relation(fields: [imageId], references: [id], onDelete: Restrict)
 
-  // Ràng buộc: Một file PDF không thể có 2 trang trùng số thứ tự
-  @@unique([batchId, pageNumber])
-  @@map("batch_items")
-}
+//   // Ràng buộc: Một file PDF không thể có 2 trang trùng số thứ tự
+//   @@unique([batchId, pageNumber])
+//   @@map("batch_items")
+// }
 
 model SearchHistory {
   id        String   @id @default(uuid()) @map("search_id")
