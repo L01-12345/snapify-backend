@@ -23,6 +23,7 @@
 		"express": "^5.2.1",
 		"jsonwebtoken": "^9.0.3",
 		"multer": "^2.1.1",
+		"pdf-lib": "^1.17.1",
 		"swagger-ui-express": "^5.0.1",
 		"yaml": "^2.8.3",
 		"yamljs": "^0.3.0"

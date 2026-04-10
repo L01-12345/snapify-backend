@@ -68,6 +68,52 @@ const generateNoteFromImage = async (imageBuffer, imageMimeType) => {
 	}
 };
 
+const suggestFolderForNote = async (noteContent, existingFolders) => {
+	try {
+		const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+		// Rút gọn data thư mục để tối ưu token gửi cho AI
+		const simplifiedFolders = existingFolders.map((f) => ({
+			id: f.id,
+			name: f.name,
+		}));
+
+		const prompt = `
+      Bạn là một trợ lý ảo thông minh giúp phân loại ghi chú.
+      Dưới đây là nội dung của một ghi chú:
+      """${noteContent}"""
+
+      Và đây là danh sách các thư mục hiện có của người dùng:
+      ${JSON.stringify(simplifiedFolders)}
+
+      NHIỆM VỤ CỦA BẠN:
+      1. Đọc nội dung ghi chú.
+      2. So sánh với danh sách thư mục hiện có.
+      3. NẾU có thư mục phù hợp: Chọn "USE_EXISTING" và trả về ID của thư mục đó.
+      4. NẾU KHÔNG CÓ thư mục nào phù hợp với chủ đề (ví dụ ghi chú là Hóa học nhưng chỉ có thư mục Toán): Chọn "CREATE_NEW", tự nghĩ ra một tên thư mục ngắn gọn (dưới 30 ký tự) và một mô tả ngắn gọn.
+
+      TRẢ VỀ KẾT QUẢ DƯỚI DẠNG JSON TUYỆT ĐỐI THEO FORMAT SAU (Không kèm text nào khác):
+      Trường hợp 1: { "action": "USE_EXISTING", "folderId": "id-cua-thu-muc" }
+      Trường hợp 2: { "action": "CREATE_NEW", "newFolderName": "Tên thư mục mới", "newFolderDescription": "Mô tả..." }
+    `;
+
+		const result = await model.generateContent(prompt);
+		const text = result.response.text();
+
+		// Xử lý dọn dẹp JSON
+		const cleanJsonString = text
+			.replace(/```json/g, "")
+			.replace(/```/g, "")
+			.trim();
+		return JSON.parse(cleanJsonString);
+	} catch (error) {
+		console.error("Lỗi AI khi phân loại:", error);
+		// Fallback: Nếu AI lỗi, trả về null để service tự xử lý
+		return null;
+	}
+};
+
 module.exports = {
 	generateNoteFromImage,
+	suggestFolderForNote,
 };

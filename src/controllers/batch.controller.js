@@ -1,5 +1,5 @@
 const { sendSuccess } = require("../utils/response.util");
-// const batchService = require('../services/batch.service');
+const batchService = require("../services/batch.service");
 
 const createBatchPDF = async (req, res, next) => {
 	try {
@@ -27,13 +27,58 @@ const createBatchPDF = async (req, res, next) => {
 
 const getBatches = async (req, res, next) => {
 	try {
-		const userId = req.user.id;
-		// const batches = await batchService.getUserBatches(userId);
-
-		return sendSuccess(res, 200, "Lấy danh sách file PDF thành công", []);
+		const batches = await batchService.getUserBatches(req.user.id);
+		return sendSuccess(res, 200, "Lấy danh sách PDF thành công", batches);
 	} catch (error) {
 		next(error);
 	}
 };
 
-module.exports = { createBatchPDF, getBatches };
+const updateBatch = async (req, res, next) => {
+	try {
+		const { title, folderId } = req.body;
+		const updatedBatch = await batchService.updateBatch(
+			req.params.id,
+			req.user.id,
+			{ title, folderId },
+		);
+		return sendSuccess(res, 200, "Cập nhật PDF thành công", updatedBatch);
+	} catch (error) {
+		next(error);
+	}
+};
+
+const deleteBatch = async (req, res, next) => {
+	try {
+		const result = await batchService.deleteBatch(req.params.id, req.user.id);
+		return sendSuccess(res, 200, result.message);
+	} catch (error) {
+		next(error);
+	}
+};
+
+const scanToPDF = async (req, res, next) => {
+	try {
+		const userId = req.user.id;
+		const files = req.files; // Lưu ý: Lấy từ req.files (số nhiều) do dùng upload.array
+		const { title } = req.body;
+
+		const newBatch = await batchService.createPDFFromUploads(
+			userId,
+			files,
+			title,
+		);
+
+		return sendSuccess(res, 201, "Tạo tài liệu PDF thành công", newBatch);
+	} catch (error) {
+		next(error);
+	}
+};
+
+module.exports = {
+	createBatchPDF,
+	getBatches,
+	scanToPDF,
+	updateBatch,
+	deleteBatch,
+};

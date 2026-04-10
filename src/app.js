@@ -1,7 +1,9 @@
 // src/app.js
+require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const setupSwagger = require("./config/swagger.config");
+const errorHandler = require("./middlewares/error.middleware");
 
 const app = express();
 
@@ -26,6 +28,7 @@ const routes = require("./routes");
 app.use("/api", routes);
 
 // 5. Global Error Handler (Bắt toàn bộ lỗi của hệ thống trả về cho Client)
+app.use(errorHandler);
 app.use((err, req, res, next) => {
 	console.error("[Error]:", err.message);
 

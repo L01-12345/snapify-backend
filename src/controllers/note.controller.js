@@ -57,7 +57,7 @@ const getNotes = async (req, res, next) => {
 const getNoteById = async (req, res, next) => {
 	try {
 		const { id } = req.params;
-		const note = await noteService.getNoteDetails(id);
+		const note = await noteService.getNoteDetails(id, req.user.id);
 
 		return sendSuccess(res, 200, "Lấy chi tiết ghi chú thành công", note);
 	} catch (error) {
@@ -69,7 +69,7 @@ const updateNote = async (req, res, next) => {
 	try {
 		const { id } = req.params;
 		const { title, content, status } = req.body;
-		const updatedNote = await noteService.updateNoteData(id, {
+		const updatedNote = await noteService.updateNoteData(id, req.user.id, {
 			title,
 			content,
 			status,
@@ -109,6 +109,36 @@ const autoCategorize = async (req, res, next) => {
 	}
 };
 
+const createNote = async (req, res, next) => {
+	try {
+		const userId = req.user.id;
+		const { title, content, folderId } = req.body;
+
+		const newNote = await noteService.createManualNote(userId, {
+			title,
+			content,
+			folderId,
+		});
+
+		return sendSuccess(res, 201, "Tạo ghi chú thủ công thành công", newNote);
+	} catch (error) {
+		next(error);
+	}
+};
+
+const deleteNote = async (req, res, next) => {
+	try {
+		const userId = req.user.id;
+		const { id } = req.params;
+
+		const result = await noteService.deleteNote(id, userId);
+
+		return sendSuccess(res, 200, result.message);
+	} catch (error) {
+		next(error);
+	}
+};
+
 module.exports = {
 	snapToNote,
 	searchNotes,
@@ -117,4 +147,6 @@ module.exports = {
 	updateNote,
 	getSmartActions,
 	autoCategorize,
+	createNote,
+	deleteNote,
 };
