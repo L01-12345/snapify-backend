@@ -45,10 +45,26 @@ const searchNotes = async (req, res, next) => {
 const getNotes = async (req, res, next) => {
 	try {
 		const userId = req.user.id;
-		const { status } = req.query; // PENDING, ACTIONED, ARCHIVED
-		const notes = await noteService.getNotesByStatus(userId, status);
+		const { status, page = 1, limit = 20 } = req.query; // PENDING, ACTIONED, ARCHIVED
+		const pageNumber = parseInt(page);
+		const limitNumber = parseInt(limit);
+		const { notes, totalCount } = await noteService.getNotesWithPagination(
+			userId,
+			status,
+			pageNumber,
+			limitNumber,
+		);
+		const pagination = {
+			total: totalCount,
+			page: pageNumber,
+			limit: limitNumber,
+			totalPages: Math.ceil(totalCount / limitNumber),
+		};
 
-		return sendSuccess(res, 200, "Lấy danh sách ghi chú thành công", notes);
+		return sendSuccess(res, 200, "Lấy danh sách ghi chú thành công", {
+			notes,
+			pagination,
+		});
 	} catch (error) {
 		next(error);
 	}
@@ -69,6 +85,8 @@ const updateNote = async (req, res, next) => {
 	try {
 		const { id } = req.params;
 		const { title, content, status } = req.body;
+		const validStatuses = ["NEW", "PROCESSED", "ARCHIVED"];
+
 		const updatedNote = await noteService.updateNoteData(id, req.user.id, {
 			title,
 			content,

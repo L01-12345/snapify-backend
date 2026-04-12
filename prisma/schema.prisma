@@ -95,6 +95,7 @@ model Note {
   entities ExtractedEntity[]
   actions  SmartAction[]
 
+  @@index([userId, status])
   @@map("notes")
 }
 
