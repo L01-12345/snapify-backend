@@ -34,7 +34,22 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-
+  test_db:
+    image: postgres:16-alpine
+    container_name: snapify_test_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: snapify_password
+      POSTGRES_DB: snapify_db_test
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_data_test:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d snapify_db_test"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
   api:
     build: .
     container_name: snapify_api
@@ -55,3 +70,4 @@ services:
 volumes:
   # mysql_data:
   postgres_data:
+  postgres_data_test:

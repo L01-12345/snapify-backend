@@ -1,0 +1,58 @@
+name: Snapify Backend CI/CD
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  push:
+    branches: [main, "*"]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-suite:
+    runs-on: ubuntu-latest
+
+    # Khởi tạo Database thật cho Integration Test
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password_test
+          POSTGRES_DB: snapify_db_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready --health-interval 10s --health-timeout 5s
+          --health-retries 5
+
+    # Khai báo biến môi trường cho cả Unit & Integration
+    env:
+      DATABASE_URL: "postgresql://postgres:password_test@localhost:5432/snapify_db_test?schema=public"
+      JWT_SECRET: "snapify_test_secret_key"
+      NODE_ENV: test
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      # Bước then chốt: Đẩy cấu trúc bảng vào DB ảo của GitHub để chạy Integration Test
+      - name: Sync Database Schema
+        run: npx prisma db push
+
+      - name: Run All Tests with Coverage
+        run: npm test -- --coverage
