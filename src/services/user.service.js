@@ -9,6 +9,7 @@ const getUserById = async (userId) => {
 			email: true,
 			displayName: true,
 			avatarUrl: true,
+			bio: true,
 			createdAt: true,
 		},
 	});
@@ -22,13 +23,23 @@ const getUserById = async (userId) => {
 };
 
 const updateUserProfile = async (userId, updateData) => {
+	if (updateData.displayName) {
+		updateData.displayName = updateData.displayName.trim();
+	}
+	if (updateData.bio) {
+		updateData.bio = updateData.bio.trim();
+	}
+
 	const updatedUser = await prisma.user.update({
 		where: { id: userId },
 		data: updateData,
 		select: {
 			id: true,
+			email: true,
 			displayName: true,
 			avatarUrl: true,
+			bio: true,
+			createdAt: true,
 		},
 	});
 	return updatedUser;
