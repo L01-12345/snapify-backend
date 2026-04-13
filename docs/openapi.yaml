@@ -83,6 +83,25 @@ components:
         createdAt:
           type: string
           format: date-time
+    DashboardMetrics:
+      type: object
+      properties:
+        total:
+          type: integer
+          example: 15
+          description: Tổng số note
+        pending:
+          type: integer
+          example: 5
+          description: Số note chưa xử lý (PENDING)
+        actioned:
+          type: integer
+          example: 7
+          description: Số note đã xử lý (ACTIONED)
+        archived:
+          type: integer
+          example: 3
+          description: Số note đã lưu trữ (ARCHIVED)
 
 security:
   - bearerAuth: []
@@ -213,6 +232,20 @@ paths:
           schema:
             type: string
             enum: [PENDING, ACTIONED, ARCHIVED]
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+          description: Số trang hiện tại (Mặc định là 1)
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+          description: Số lượng ghi chú trên mỗi trang (Mặc định là 20)
       responses:
         "200":
           description: Successful operation
@@ -468,3 +501,52 @@ paths:
       responses:
         "200":
           description: PDF deleted successfully
+
+  /dashboard/metrics:
+    get:
+      summary: Lấy thống kê số lượng Note
+      tags: [Dashboard]
+      description:
+        Trả về tổng số lượng Note và chi tiết theo từng trạng thái (PENDING,
+        ACTIONED, ARCHIVED) của user đang đăng nhập.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Get data metrics successfully
+        #   content:
+        #     application/json:
+        #       schema:
+        #         type: object
+        #         properties:
+        #           status:
+        #             type: string
+        #             example: success
+        #           data:
+        #             $ref: "#/components/schemas/DashboardMetrics"
+        # "401":
+        #   description: Chưa đăng nhập hoặc Token không hợp lệ
+        #   content:
+        #     application/json:
+        #       schema:
+        #         type: object
+        #         properties:
+        #           status:
+        #             type: string
+        #             example: error
+        #           message:
+        #             type: string
+        #             example: Unauthorized
+        # "500":
+        #   description: Lỗi Server
+        #   content:
+        #     application/json:
+        #       schema:
+        #         type: object
+        #         properties:
+        #           status:
+        #             type: string
+        #             example: error
+        #           message:
+        #             type: string
+        #             example: Internal server error

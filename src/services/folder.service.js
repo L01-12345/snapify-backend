@@ -100,8 +100,34 @@ const updateFolder = async (folderId, userId, updateData) => {
 	}
 
 	// EDGE CASE: Nếu user muốn đổi tên, phải kiểm tra tên mới có bị trùng với thư mục khác không
-	if (updateData.name) {
-		const newName = updateData.name.trim();
+	// if (updateData.name) {
+	// 	const newName = updateData.name.trim();
+	// 	if (!newName) {
+	// 		const error = new Error("Tên thư mục không được để trống");
+	// 		error.statusCode = 400;
+	// 		throw error;
+	// 	}
+
+	// 	const nameExists = await prisma.folder.findFirst({
+	// 		where: {
+	// 			userId,
+	// 			name: newName,
+	// 			id: { not: folderId }, // Loại trừ chính thư mục đang sửa ra
+	// 		},
+	// 	});
+
+	// 	if (nameExists) {
+	// 		const error = new Error(`Tên thư mục "${newName}" đã được sử dụng`);
+	// 		error.statusCode = 400;
+	// 		throw error;
+	// 	}
+	// 	updateData.name = newName;
+	// }
+	if (updateData.name !== undefined) {
+		// Đảm bảo an toàn nếu vô tình truyền null
+		const newName =
+			typeof updateData.name === "string" ? updateData.name.trim() : "";
+
 		if (!newName) {
 			const error = new Error("Tên thư mục không được để trống");
 			error.statusCode = 400;

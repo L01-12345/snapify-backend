@@ -104,8 +104,14 @@ const searchUserNotes = async (userId, keyword) => {
 	return notes;
 };
 
-const getNotesByStatus = async (userId, status) => {
+const getNotesWithPagination = async (
+	userId,
+	status,
+	pageNumber,
+	limitNumber,
+) => {
 	// EDGE CASE 1: Client truyền lên một status vớ vẩn không có trong hệ thống
+
 	const validStatuses = ["PENDING", "ACTIONED", "ARCHIVED"];
 	if (status && !validStatuses.includes(status.toUpperCase())) {
 		const error = new Error("Trạng thái bộ lọc không hợp lệ");
@@ -117,12 +123,18 @@ const getNotesByStatus = async (userId, status) => {
 	if (status) {
 		whereCondition.status = status.toUpperCase(); // Đảm bảo luôn in hoa để khớp với Enum Database
 	}
+	console.log(whereCondition);
+	const [notes, totalCount] = await Promise.all([
+		prisma.note.findMany({
+			where: whereCondition,
+			skip: (pageNumber - 1) * limitNumber,
+			take: limitNumber,
+			orderBy: { updatedAt: "desc" },
+		}),
+		prisma.note.count({ where: whereCondition }),
+	]);
 
-	return await prisma.note.findMany({
-		where: whereCondition,
-		include: { folder: true },
-		orderBy: { updatedAt: "desc" },
-	});
+	return { notes, totalCount };
 };
 
 const getNoteDetails = async (id, userId) => {
@@ -163,6 +175,13 @@ const updateNoteData = async (id, userId, updateData) => {
 			"Không tìm thấy ghi chú hoặc bạn không có quyền chỉnh sửa",
 		);
 		error.statusCode = 404;
+		throw error;
+	}
+	const validStatuses = ["NEW", "PROCESSED", "ARCHIVED"];
+	const status = updateData.status;
+	if (status && !validStatuses.includes(status.toUpperCase())) {
+		const error = new Error("Trạng thái cập nhật không hợp lệ");
+		error.statusCode = 400;
 		throw error;
 	}
 
@@ -323,7 +342,7 @@ const deleteNote = async (id, userId) => {
 module.exports = {
 	processImageToNote,
 	searchUserNotes,
-	getNotesByStatus,
+	getNotesWithPagination,
 	getNoteDetails,
 	updateNoteData,
 	categorizeNoteWithAI,

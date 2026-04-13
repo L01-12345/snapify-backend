@@ -3,7 +3,8 @@
 	"version": "1.0.0",
 	"main": "index.js",
 	"scripts": {
-		"test": "echo \"Error: no test specified\" && exit 1",
+		"test": "dotenv -e .env.test -- jest --coverage",
+		"test:push-db": "dotenv -e .env.test -- npx prisma db push",
 		"start": "node src/server.js",
 		"dev": "nodemon -L src/server.js",
 		"prisma:generate": "prisma generate",
@@ -29,7 +30,11 @@
 		"yamljs": "^0.3.0"
 	},
 	"devDependencies": {
+		"dotenv-cli": "^11.0.0",
+		"jest": "^30.3.0",
+		"jest-mock-extended": "^4.0.0",
 		"nodemon": "^3.1.14",
-		"prisma": "^6.19.3"
+		"prisma": "^6.19.3",
+		"supertest": "^7.2.2"
 	}
 }
