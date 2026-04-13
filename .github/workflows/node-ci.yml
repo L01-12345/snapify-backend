@@ -6,9 +6,12 @@ concurrency:
 
 on:
   push:
-    branches: [main, "*"]
+    branches:
+      - "main"
+      - "**"
   pull_request:
-    branches: [main]
+    branches:
+      - "main"
 
 jobs:
   test-suite:
@@ -56,3 +59,11 @@ jobs:
 
       - name: Run All Tests with Coverage
         run: npm test -- --coverage
+  deploy:
+    needs: test-suite # CHỈ CHẠY KHI TEST-SUITE THÀNH CÔNG
+    if: github.ref == 'refs/heads/main' # CHỈ DEPLOY KHI PUSH VÀO NHÁNH MAIN
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Render Deploy
+        # Sử dụng secret RENDER_DEPLOY_HOOK_URL bạn đã thêm vào Github Settings
+        run: curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
