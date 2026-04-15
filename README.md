@@ -1,4 +1,4 @@
-# 📸 Snapify Backend
+# Snapify Backend
 
 Snapify là ứng dụng thông minh giúp người dùng chuyển đổi hình ảnh thành ghi chú
 văn bản (Snap-to-Note), tự động phân loại, và trích xuất các hành động thông
@@ -9,7 +9,7 @@ cho các ứng dụng Client (Mobile/Web).
 
 ---
 
-## 🛠 Công nghệ sử dụng (Tech Stack)
+## Công nghệ sử dụng (Tech Stack)
 
 Dự án được xây dựng trên nền tảng các công nghệ hiện đại và tối ưu cho hiệu
 suất:
@@ -24,7 +24,7 @@ suất:
 
 ---
 
-## 📁 Cấu trúc thư mục (Project Structure)
+## Cấu trúc thư mục (Project Structure)
 
 Dự án áp dụng mô hình kiến trúc **3-Layer Architecture** (Routes -> Controllers
 -> Services) để đảm bảo tính dễ bảo trì và mở rộng:
@@ -47,7 +47,7 @@ snapify-backend/
 └── package.json        # Quản lý thư viện và scripts
 ```
 
-## ⚙️ Yêu cầu hệ thống (Prerequisites)
+## Yêu cầu hệ thống (Prerequisites)
 
 Trước khi cài đặt, đảm bảo máy tính của bạn đã cài đặt sẵn các công cụ sau:
 
@@ -56,7 +56,7 @@ Trước khi cài đặt, đảm bảo máy tính của bạn đã cài đặt s
 - Docker và Docker Compose (Nếu muốn chạy qua container)
 - PostgreSQL (Nếu chạy database trực tiếp trên máy local)
 
-## 🚀 Hướng dẫn cài đặt và chạy dự án
+## Hướng dẫn cài đặt và chạy dự án
 
 Bước 1: Chuẩn bị môi trường (Prerequisites)
 
@@ -151,3 +151,60 @@ Nếu thấy dòng `🚀 Server running on port 3000`, bạn đã thành công! 
 
 Mở API Tài liệu (Swagger UI): Mở trình duyệt và truy cập:
 http://localhost:3000/api-docs
+
+## Kiểm thử và Đảm bảo chất lượng (Testing & QA)
+
+Dự án áp dụng phương pháp phát triển hướng kiểm thử (TDD) với độ phủ mã nguồn
+(Test Coverage) đạt tiêu chuẩn > 85%. Hệ thống sử dụng **Jest** làm Test Runner
+và **Supertest** để kiểm thử các API Endpoints.
+
+### 1. Cấu trúc thư mục kiểm thử
+
+Các kịch bản kiểm thử được chia làm 2 tầng rõ rệt:
+
+- `test/services/`: Chứa các bài Unit Test với dữ liệu Mock. Cô lập hoàn toàn
+  với các dịch vụ bên thứ 3 (Gemini AI, Cloudflare R2) để kiểm tra logic thuật
+  toán.
+- `test/integrations/`: Chứa các bài Integration Test đi qua toàn bộ luồng dữ
+  liệu thật (Router ➔ Controller ➔ Service ➔ Database PostgreSQL).
+
+### 2. Chuẩn bị môi trường Test
+
+Trước khi chạy test cục bộ (Local), hãy đảm bảo đã cấu hình chuỗi kết nối
+Database cho môi trường test trong file `.env.test`:
+
+```env
+# URL kết nối đến Database phụ dành riêng cho Test
+DATABASE_URL="postgresql://postgres:snapify_password@snapify_test_db:5432/snapify_db_test?schema=public"
+
+# Token Secret dùng riêng cho lúc test
+JWT_SECRET="your_secrret_key"
+
+# Cấu hình môi trường
+NODE_ENV="test"
+PORT=3001 # Đổi cổng để không bị đụng với server đang chạy thật ở cổng 3000
+```
+
+3. Các lệnh chạy Test Chạy toàn bộ Test Suite (Khuyên dùng) Để tránh lỗi xung
+   đột dữ liệu (Database Race Conditions) khi các file test thao tác song song
+   trên cùng một cơ sở dữ liệu (đặc biệt là các lệnh deleteMany), dự án đã cấu
+   hình chạy test tuần tự:
+
+```Bash
+docker exec -it snapify npm run test
+```
+
+Chạy riêng một file Test cụ thể Khi bạn chỉ muốn tập trung debug một module (VD:
+Auth API):
+
+```Bash
+docker exec -it snapify npx jest test/integrations/auth.api.test.js
+```
+
+Xem báo cáo độ phủ mã nguồn (Coverage Report) Kiểm tra xem các
+Controller/Service đã được test bao phủ bao nhiêu % số dòng code:
+
+```Bash
+docker exec -it snapify npm run test:coverage
+# Hoặc lệnh gốc: npx jest --coverage --runInBand
+```
