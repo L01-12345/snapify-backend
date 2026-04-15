@@ -329,14 +329,60 @@ const deleteNote = async (id, userId) => {
 	}
 
 	// 2. Thực hiện xóa trong Database
-	// Lưu ý: Nếu Schema của bạn thiết lập `onDelete: Cascade` ở bảng Image và Action,
-	// Prisma sẽ tự động dọn dẹp các record con.
-	// (Ở MVP, việc file ảnh gốc trên Cloudflare bị thừa lại có thể chấp nhận được để tối ưu tốc độ xóa)
+	// việc file ảnh gốc trên Cloudflare bị thừa lại
 	await prisma.note.delete({
 		where: { id },
 	});
 
 	return { message: "Đã xóa ghi chú thành công" };
+};
+
+// =========================================================
+// TRÍCH XUẤT HÀNH ĐỘNG THÔNG MINH (Mock cho tính năng AI)
+// =========================================================
+const extractActionsFromNote = async (id, userId) => {
+	// 1. BẢO MẬT
+	const note = await prisma.note.findFirst({
+		where: {
+			id: id,
+			userId: userId,
+		},
+	});
+
+	if (!note) {
+		const err = new Error(
+			"Không tìm thấy ghi chú hoặc bạn không có quyền truy cập",
+		);
+		err.statusCode = 404;
+		throw err;
+	}
+
+	// 2. EDGE CASE 1 (Tối ưu chi phí): Ghi chú rỗng hoặc chỉ có khoảng trắng
+	if (!note.content || note.content.trim() === "") {
+		return [];
+	}
+
+	try {
+		// 3. GỌI AI THẬT: Truyền nội dung sang Gemini Service
+		const extractedActions = await geminiService.extractSmartActions(
+			note.content,
+		);
+
+		// 4. EDGE CASE 2 (Bảo vệ format): Đảm bảo AI luôn trả về mảng
+		if (!extractedActions || !Array.isArray(extractedActions)) {
+			console.warn(`[AI Warning] Gemini trả về sai định dạng cho Note ${id}`);
+			return [];
+		}
+
+		return extractedActions;
+	} catch (error) {
+		// 5. EDGE CASE 3 (Sự cố ngoại cảnh): Rớt mạng, hết Quota API, Cloudflare chặn
+		console.error(
+			`[AI Error] Trích xuất action thất bại cho Note ${id}:`,
+			error.message,
+		);
+		return [];
+	}
 };
 
 module.exports = {
@@ -348,4 +394,5 @@ module.exports = {
 	categorizeNoteWithAI,
 	createManualNote,
 	deleteNote,
+	extractActionsFromNote,
 };

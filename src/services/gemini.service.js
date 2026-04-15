@@ -113,7 +113,34 @@ const suggestFolderForNote = async (noteContent, existingFolders) => {
 	}
 };
 
+const extractSmartActions = async (text) => {
+	// Prompt hướng dẫn AI (System Prompt)
+	const prompt = `
+    Phân tích đoạn văn bản sau và trích xuất các hành động/thông tin quan trọng.
+    Trả về ĐÚNG định dạng JSON là một mảng các object. Tuyệt đối không giải thích gì thêm.
+    Mỗi object có cấu trúc: { "type": "PHONE" | "EMAIL" | "URL" | "DATE" | "TODO", "value": "nội dung trích xuất" }
+    
+    Văn bản: "${text}"
+    `;
+
+	try {
+		const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+		const result = await model.generateContent(prompt);
+		const responseText = result.response.text();
+
+		// Cắt bỏ các ký tự Markdown rác (như ```json và ```) để parse thành object thật
+		const cleanJsonString = responseText
+			.replace(/```json/g, "")
+			.replace(/```/g, "")
+			.trim();
+		return JSON.parse(cleanJsonString);
+	} catch (error) {
+		throw new Error(`Lỗi Gemini API: ${error.message}`);
+	}
+};
+
 module.exports = {
 	generateNoteFromImage,
 	suggestFolderForNote,
+	extractSmartActions,
 };

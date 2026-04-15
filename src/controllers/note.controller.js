@@ -102,7 +102,8 @@ const updateNote = async (req, res, next) => {
 const getSmartActions = async (req, res, next) => {
 	try {
 		const { id } = req.params;
-		const actions = await noteService.extractActionsFromNote(id);
+		const userId = req.user.id;
+		const actions = await noteService.extractActionsFromNote(id, userId);
 
 		const mockActions = [{ type: "PHONE", value: "0901234567" }];
 		return sendSuccess(
