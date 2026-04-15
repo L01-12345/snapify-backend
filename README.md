@@ -170,9 +170,8 @@ Các kịch bản kiểm thử được chia làm 2 tầng rõ rệt:
 
 ### 2. Chuẩn bị môi trường Test
 
-Trước khi chạy test cục bộ (Local), hãy đảm bảo bạn đã cấu hình chuỗi kết nối
-Database cho môi trường test trong file `.env` (Khuyến nghị dùng một Database
-rỗng riêng biệt để không làm rác dữ liệu thật):
+Trước khi chạy test cục bộ (Local), hãy đảm bảo đã cấu hình chuỗi kết nối
+Database cho môi trường test trong file `.env.test`:
 
 ```env
 # URL kết nối đến Database phụ dành riêng cho Test
