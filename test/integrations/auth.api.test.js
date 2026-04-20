@@ -2,6 +2,11 @@ const request = require("supertest");
 const app = require("../../src/app"); // Đảm bảo đường dẫn này trỏ đúng tới file app.js của bạn
 const prisma = require("../../src/utils/prisma.util");
 const bcrypt = require("bcryptjs");
+jest.mock("nodemailer", () => ({
+	createTransport: jest.fn().mockReturnValue({
+		sendMail: jest.fn().mockResolvedValue(true),
+	}),
+}));
 
 describe("Integration Test: Authentication API Endpoints", () => {
 	// Dữ liệu giả lập cho Frontend gửi lên
@@ -106,13 +111,111 @@ describe("Integration Test: Authentication API Endpoints", () => {
 	// KỊCH BẢN 3: QUÊN MẬT KHẨU (FORGOT PASSWORD)
 	// ==========================================
 	describe("POST /api/auth/forgot-password", () => {
-		test("Nên trả về thông báo HTTP 200 bất kể email có tồn tại hay không (Chống dò quét)", async () => {
+		test("Nên trả về 200 và sinh mã OTP khi email hợp lệ", async () => {
 			const response = await request(app)
 				.post("/api/auth/forgot-password")
-				.send({ email: testUserData.email });
+				.send({ email: testUserData.email }); // Dùng lại email test của bạn
 
 			expect(response.status).toBe(200);
-			expect(response.body.message).toContain("đã được gửi vào email");
+
+			// Mở DB ra kiểm tra xem OTP đã được lưu chưa
+			const userInDb = await prisma.user.findUnique({
+				where: { email: testUserData.email },
+			});
+			expect(userInDb.resetPasswordOtp).toBeDefined();
+			expect(userInDb.resetPasswordOtp.length).toBe(6);
+		});
+
+		test("Nên trả về 200 kể cả khi email không tồn tại (Chống hacker dò quét)", async () => {
+			const response = await request(app)
+				.post("/api/auth/forgot-password")
+				.send({ email: "ghost_user@snapify.com" });
+
+			expect(response.status).toBe(200);
+		});
+
+		test("Nên bị khiên Joi chặn (400) nếu sai định dạng email", async () => {
+			const response = await request(app)
+				.post("/api/auth/forgot-password")
+				.send({ email: "not-an-email" });
+
+			expect(response.status).toBe(400);
+		});
+	});
+
+	// ==========================================
+	// KỊCH BẢN: ĐẶT LẠI MẬT KHẨU (RESET PASSWORD)
+	// ==========================================
+	describe("POST /api/auth/reset-password", () => {
+		let validOtp;
+
+		// Trước khi chạy test đổi pass, phải xin cấp 1 mã OTP mới
+		beforeAll(async () => {
+			await request(app)
+				.post("/api/auth/forgot-password")
+				.send({ email: testUserData.email });
+			const user = await prisma.user.findUnique({
+				where: { email: testUserData.email },
+			});
+			validOtp = user.resetPasswordOtp; // Lấy trộm OTP từ DB
+		});
+
+		test("Nên báo lỗi 400 nếu nhập sai mã OTP", async () => {
+			const response = await request(app)
+				.post("/api/auth/reset-password")
+				.send({
+					email: testUserData.email,
+					otp: "000000", // Cố tình nhập sai
+					newPassword: "new_password_123",
+				});
+
+			expect(response.status).toBe(400);
+			expect(response.body.message).toContain("không chính xác");
+		});
+
+		test("Nên báo lỗi 400 nếu mã OTP đã hết hạn", async () => {
+			// Thao túng DB: Tua thời gian hết hạn về quá khứ (cách đây 10 giây)
+			await prisma.user.update({
+				where: { email: testUserData.email },
+				data: { resetPasswordExpires: new Date(Date.now() - 10000) },
+			});
+
+			const response = await request(app)
+				.post("/api/auth/reset-password")
+				.send({
+					email: testUserData.email,
+					otp: validOtp,
+					newPassword: "new_password_123",
+				});
+
+			expect(response.status).toBe(400);
+			expect(response.body.message).toContain("hết hạn");
+
+			// Trả lại thời gian hợp lệ cho bài test thành công bên dưới
+			await prisma.user.update({
+				where: { email: testUserData.email },
+				data: { resetPasswordExpires: new Date(Date.now() + 15 * 60 * 1000) },
+			});
+		});
+
+		test("Nên đổi mật khẩu thành công và dọn dẹp sạch OTP", async () => {
+			const response = await request(app)
+				.post("/api/auth/reset-password")
+				.send({
+					email: testUserData.email,
+					otp: validOtp,
+					newPassword: "new_password_123",
+				});
+
+			expect(response.status).toBe(200);
+			expect(response.body.message).toContain("thành công");
+
+			// Nghiệm thu: DB phải xóa sạch OTP cũ để không bị dùng lại
+			const checkUser = await prisma.user.findUnique({
+				where: { email: testUserData.email },
+			});
+			expect(checkUser.resetPasswordOtp).toBeNull();
+			expect(checkUser.resetPasswordExpires).toBeNull();
 		});
 	});
 });

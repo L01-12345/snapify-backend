@@ -7,7 +7,7 @@ const upload = require("../middlewares/upload.middleware");
 
 router.use(authMiddleware);
 
-router.post("/", batchController.createBatchPDF);
+// router.post("/", batchController.createBatchPDF);
 
 router.get("/", batchController.getBatches);
 
