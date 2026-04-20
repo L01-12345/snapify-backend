@@ -2,6 +2,7 @@ const {
 	registerUser,
 	loginUser,
 	processForgotPassword,
+	resetPassword,
 } = require("../../src/services/auth.service");
 const prisma = require("../../src/utils/prisma.util");
 const bcrypt = require("bcryptjs");
@@ -12,7 +13,14 @@ jest.mock("../../src/utils/prisma.util", () => ({
 	user: {
 		findUnique: jest.fn(),
 		create: jest.fn(),
+		update: jest.fn(),
 	},
+}));
+// Mock Nodemailer để không gửi email thật khi chạy test
+jest.mock("nodemailer", () => ({
+	createTransport: jest.fn().mockReturnValue({
+		sendMail: jest.fn().mockResolvedValue(true), // Giả lập việc gửi mail luôn thành công
+	}),
 }));
 jest.mock("bcryptjs");
 jest.mock("jsonwebtoken");
@@ -28,7 +36,7 @@ describe("Auth Service Tests", () => {
 	describe("registerUser", () => {
 		const mockData = {
 			email: "test@mail.com",
-			password: "123",
+			password: "1234567",
 			displayName: "Test",
 		};
 
@@ -127,7 +135,7 @@ describe("Auth Service Tests", () => {
 			await processForgotPassword("test@mail.com");
 
 			expect(consoleSpy).toHaveBeenCalledWith(
-				expect.stringContaining("Đã gửi link reset"),
+				expect.stringContaining("Đã gửi OTP"),
 			);
 			consoleSpy.mockRestore();
 		});

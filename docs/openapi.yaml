@@ -158,7 +158,56 @@ paths:
       responses:
         "200":
           description: Login successful, returns JWT token
-
+  /auth/forgot-password:
+    post:
+      tags: [Authentication]
+      summary: Yêu cầu khôi phục mật khẩu (Gửi mã OTP qua Email)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  example: snapify.tester@gmail.com
+      responses:
+        "200":
+          description:
+            Yêu cầu thành công. Mã OTP đã được gửi đến email (nếu email tồn
+            tại).
+        "400":
+          description: Lỗi định dạng email không hợp lệ.
+  /auth/reset-password:
+    post:
+      tags: [Authentication]
+      summary: Đặt lại mật khẩu mới bằng mã OTP
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, otp, newPassword]
+              properties:
+                email:
+                  type: string
+                  example: snapify.tester@gmail.com
+                otp:
+                  type: string
+                  example: "123456"
+                newPassword:
+                  type: string
+                  example: snapify_new_pass
+      responses:
+        "200":
+          description: Đặt lại mật khẩu thành công
+        "400":
+          description: Lỗi sai OTP hoặc OTP hết hạn
   # ====================================================
   # 2. USER ROUTES
   # ====================================================

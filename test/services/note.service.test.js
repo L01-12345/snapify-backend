@@ -190,7 +190,6 @@ describe("Note Service Tests", () => {
 			prisma.note.findUnique.mockResolvedValue({ id: "n1", userId: "u1" });
 			prisma.folder.findMany.mockResolvedValue([{ id: "f1" }]); // Có mỗi folder f1
 
-			// AI bịa ra ID f999
 			geminiService.suggestFolderForNote.mockResolvedValue({
 				action: "USE_EXISTING",
 				folderId: "f999",
@@ -199,7 +198,6 @@ describe("Note Service Tests", () => {
 
 			await noteService.categorizeNoteWithAI("n1");
 
-			// Đảm bảo nó phát hiện f999 là xạo, và chuyển sang tự tạo folder mới
 			expect(prisma.folder.create).toHaveBeenCalled();
 			expect(prisma.note.update).toHaveBeenCalledWith(
 				expect.objectContaining({ data: { folderId: "smart-f1" } }),
