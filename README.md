@@ -208,3 +208,35 @@ Controller/Service đã được test bao phủ bao nhiêu % số dòng code:
 docker exec -it snapify npm run test:coverage
 # Hoặc lệnh gốc: npx jest --coverage --runInBand
 ```
+
+### Các script mới để quản lý Database
+
+Lưu ý: Các câu lệnh bên dưới đều phải chạy với tiền tố:
+`docker exec -it snapify_api ...`
+
+Khi thay đổi cấu trúc Database (file `schema.prisma`), chạy lệnh sau:
+
+```bash
+npm run db:migrate:dev
+```
+
+Khi pull code mới, chạy lệnh sau:
+
+```bash
+npm run db:pull
+```
+
+Khi muốn reset database, chạy lệnh sau:
+
+```bash
+npm run db:reset
+```
+
+Khi chạy lệnh trên, nó sẽ xóa toàn bộ data đã tạo trước đó trong Database, do đó
+hãy chạy lại `seed.sql` để nạp dữ liệu test (Phần hướng dẫn nằm ở mục trên).
+
+Khi muốn cập nhật Prisma Client thủ công, chạy lệnh sau:
+
+```bash
+npm run db:generate
+```
