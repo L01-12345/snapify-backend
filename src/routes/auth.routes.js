@@ -1,14 +1,29 @@
 // src/routes/auth.routes.js
 const express = require("express");
 const router = express.Router();
-
-// Tạm thời mock Controller (Bạn sẽ viết chi tiết trong thư mục controllers sau)
 const authController = require("../controllers/auth.controller");
 
-router.post("/register", authController.register);
+const validate = require("../middlewares/validate.middleware");
+const authValidation = require("../validations/auth.validation");
 
-router.post("/login", authController.login);
+router.post(
+	"/register",
+	validate(authValidation.register),
+	authController.register,
+);
 
-router.post("/forgot-password", authController.forgotPassword);
+router.post("/login", validate(authValidation.login), authController.login);
+
+router.post(
+	"/forgot-password",
+	validate(authValidation.forgotPassword),
+	authController.forgotPassword,
+);
+
+router.post(
+	"/reset-password",
+	validate(authValidation.resetPassword),
+	authController.resetPassword,
+);
 
 module.exports = router;

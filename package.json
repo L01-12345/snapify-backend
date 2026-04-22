@@ -3,11 +3,16 @@
 	"version": "1.0.0",
 	"main": "index.js",
 	"scripts": {
-		"test": "echo \"Error: no test specified\" && exit 1",
+		"test": "dotenv -e .env.test -- jest --coverage --runInBand --detectOpenHandles",
+		"test:push-db": "dotenv -e .env.test -- npx prisma db push",
 		"start": "node src/server.js",
 		"dev": "nodemon -L src/server.js",
 		"prisma:generate": "prisma generate",
-		"prisma:push": "prisma db push"
+		"prisma:push": "prisma db push",
+		"db:generate": "prisma generate",
+		"db:migrate:dev": "prisma migrate dev",
+		"db:pull": "prisma migrate deploy && npm run db:generate",
+		"db:reset": "prisma migrate reset"
 	},
 	"keywords": [],
 	"author": "",
@@ -21,15 +26,21 @@
 		"cors": "^2.8.6",
 		"dotenv": "^17.4.0",
 		"express": "^5.2.1",
+		"joi": "^18.1.2",
 		"jsonwebtoken": "^9.0.3",
 		"multer": "^2.1.1",
+		"nodemailer": "^8.0.5",
 		"pdf-lib": "^1.17.1",
 		"swagger-ui-express": "^5.0.1",
 		"yaml": "^2.8.3",
 		"yamljs": "^0.3.0"
 	},
 	"devDependencies": {
+		"dotenv-cli": "^11.0.0",
+		"jest": "^30.3.0",
+		"jest-mock-extended": "^4.0.0",
 		"nodemon": "^3.1.14",
-		"prisma": "^6.19.3"
+		"prisma": "^6.19.3",
+		"supertest": "^7.2.2"
 	}
 }

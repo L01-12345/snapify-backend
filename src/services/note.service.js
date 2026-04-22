@@ -104,8 +104,14 @@ const searchUserNotes = async (userId, keyword) => {
 	return notes;
 };
 
-const getNotesByStatus = async (userId, status) => {
+const getNotesWithPagination = async (
+	userId,
+	status,
+	pageNumber,
+	limitNumber,
+) => {
 	// EDGE CASE 1: Client truyền lên một status vớ vẩn không có trong hệ thống
+
 	const validStatuses = ["PENDING", "ACTIONED", "ARCHIVED"];
 	if (status && !validStatuses.includes(status.toUpperCase())) {
 		const error = new Error("Trạng thái bộ lọc không hợp lệ");
@@ -117,12 +123,18 @@ const getNotesByStatus = async (userId, status) => {
 	if (status) {
 		whereCondition.status = status.toUpperCase(); // Đảm bảo luôn in hoa để khớp với Enum Database
 	}
+	console.log(whereCondition);
+	const [notes, totalCount] = await Promise.all([
+		prisma.note.findMany({
+			where: whereCondition,
+			skip: (pageNumber - 1) * limitNumber,
+			take: limitNumber,
+			orderBy: { updatedAt: "desc" },
+		}),
+		prisma.note.count({ where: whereCondition }),
+	]);
 
-	return await prisma.note.findMany({
-		where: whereCondition,
-		include: { folder: true },
-		orderBy: { updatedAt: "desc" },
-	});
+	return { notes, totalCount };
 };
 
 const getNoteDetails = async (id, userId) => {
@@ -163,6 +175,13 @@ const updateNoteData = async (id, userId, updateData) => {
 			"Không tìm thấy ghi chú hoặc bạn không có quyền chỉnh sửa",
 		);
 		error.statusCode = 404;
+		throw error;
+	}
+	const validStatuses = ["NEW", "PROCESSED", "ARCHIVED"];
+	const status = updateData.status;
+	if (status && !validStatuses.includes(status.toUpperCase())) {
+		const error = new Error("Trạng thái cập nhật không hợp lệ");
+		error.statusCode = 400;
 		throw error;
 	}
 
@@ -310,9 +329,7 @@ const deleteNote = async (id, userId) => {
 	}
 
 	// 2. Thực hiện xóa trong Database
-	// Lưu ý: Nếu Schema của bạn thiết lập `onDelete: Cascade` ở bảng Image và Action,
-	// Prisma sẽ tự động dọn dẹp các record con.
-	// (Ở MVP, việc file ảnh gốc trên Cloudflare bị thừa lại có thể chấp nhận được để tối ưu tốc độ xóa)
+	// việc file ảnh gốc trên Cloudflare bị thừa lại
 	await prisma.note.delete({
 		where: { id },
 	});
@@ -320,13 +337,62 @@ const deleteNote = async (id, userId) => {
 	return { message: "Đã xóa ghi chú thành công" };
 };
 
+// =========================================================
+// TRÍCH XUẤT HÀNH ĐỘNG THÔNG MINH (Mock cho tính năng AI)
+// =========================================================
+const extractActionsFromNote = async (id, userId) => {
+	// 1. BẢO MẬT
+	const note = await prisma.note.findFirst({
+		where: {
+			id: id,
+			userId: userId,
+		},
+	});
+
+	if (!note) {
+		const err = new Error(
+			"Không tìm thấy ghi chú hoặc bạn không có quyền truy cập",
+		);
+		err.statusCode = 404;
+		throw err;
+	}
+
+	// 2. EDGE CASE 1 (Tối ưu chi phí): Ghi chú rỗng hoặc chỉ có khoảng trắng
+	if (!note.content || note.content.trim() === "") {
+		return [];
+	}
+
+	try {
+		// 3. GỌI AI THẬT: Truyền nội dung sang Gemini Service
+		const extractedActions = await geminiService.extractSmartActions(
+			note.content,
+		);
+
+		// 4. EDGE CASE 2 (Bảo vệ format): Đảm bảo AI luôn trả về mảng
+		if (!extractedActions || !Array.isArray(extractedActions)) {
+			console.warn(`[AI Warning] Gemini trả về sai định dạng cho Note ${id}`);
+			return [];
+		}
+
+		return extractedActions;
+	} catch (error) {
+		// 5. EDGE CASE 3 (Sự cố ngoại cảnh): Rớt mạng, hết Quota API, Cloudflare chặn
+		console.error(
+			`[AI Error] Trích xuất action thất bại cho Note ${id}:`,
+			error.message,
+		);
+		return [];
+	}
+};
+
 module.exports = {
 	processImageToNote,
 	searchUserNotes,
-	getNotesByStatus,
+	getNotesWithPagination,
 	getNoteDetails,
 	updateNoteData,
 	categorizeNoteWithAI,
 	createManualNote,
 	deleteNote,
+	extractActionsFromNote,
 };
