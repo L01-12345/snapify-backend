@@ -44,15 +44,6 @@ enum ExtractedEntityType {
 // ==========================================
 
 model User {
-  id           String   @id @default(uuid()) @map("user_id")
-  displayName  String   @map("display_name")
-  email       String   @unique
-  passwordHash String   @map("password_hash")
-  avatarUrl    String?  @map("avatar_url")
-  bio         String?  @map("bio") @db.Text
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
   id                   String          @id @default(uuid()) @map("user_id")
   displayName          String          @map("display_name")
   email                String          @unique
@@ -60,6 +51,7 @@ model User {
   avatarUrl            String?         @map("avatar_url") // Dấu ? thể hiện Nullable
   createdAt            DateTime        @default(now()) @map("created_at")
   updatedAt            DateTime        @updatedAt @map("updated_at")
+  bio         String?  @map("bio") @db.Text
   resetPasswordOtp     String?
   resetPasswordExpires DateTime?
   // Relationships
