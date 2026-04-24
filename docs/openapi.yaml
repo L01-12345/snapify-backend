@@ -38,9 +38,15 @@ components:
           type: string
         displayName:
           type: string
+        bio:
+          type: string
+          nullable: true
         avatarUrl:
           type: string
           nullable: true
+        createdAt:
+          type: string
+          format: date-time
     Note:
       type: object
       properties:
@@ -211,7 +217,7 @@ paths:
   # ====================================================
   # 2. USER ROUTES
   # ====================================================
-  /users/profile:
+  /users/me:
     get:
       tags: [Users]
       summary: Get user profile
@@ -230,11 +236,31 @@ paths:
               properties:
                 displayName:
                   type: string
+                bio:
+                  type: string
                 avatarUrl:
                   type: string
       responses:
         "200":
           description: Profile updated successfully
+
+  /users/avatar:
+    post:
+      tags: [Users]
+      summary: Upload avatar image
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                image:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: Avatar uploaded successfully
 
   # ====================================================
   # 3. NOTES ROUTES
