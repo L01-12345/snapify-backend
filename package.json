@@ -3,8 +3,8 @@
 	"version": "1.0.0",
 	"main": "index.js",
 	"scripts": {
-		"test": "dotenv -e .env.test -- jest --coverage --runInBand --detectOpenHandles",
-		"test:push-db": "dotenv -e .env.test -- npx prisma db push",
+		"test": "npx dotenv-cli -e .env.test -- jest --coverage --runInBand --detectOpenHandles",
+		"test:push-db": "npx dotenv-cli -e .env.test -- npx prisma db push",
 		"start": "node src/server.js",
 		"dev": "nodemon -L src/server.js",
 		"prisma:generate": "prisma generate",
