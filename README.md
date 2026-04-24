@@ -191,7 +191,7 @@ PORT=3001 # Đổi cổng để không bị đụng với server đang chạy th
    hình chạy test tuần tự:
 
 ```Bash
-docker exec -it snapify npm run test
+docker exec -it snapify_api npm run test
 ```
 
 Chạy riêng một file Test cụ thể Khi bạn chỉ muốn tập trung debug một module (VD:
