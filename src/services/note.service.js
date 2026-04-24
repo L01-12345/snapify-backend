@@ -44,8 +44,8 @@ const processImageToNote = async (userId, file) => {
 		const newNote = await prisma.note.create({
 			data: {
 				userId,
-				title: noteTitle,
-				content: noteContent,
+				title: aiGeneratedData.title,
+				content: aiGeneratedData.content,
 				status: "PENDING",
 				// folderId: KHÔNG ĐIỀN Ở ĐÂY, để nguyên là Chưa phân loại
 				images: {
