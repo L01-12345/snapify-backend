@@ -31,11 +31,19 @@ describe("Note Service Tests", () => {
 	describe("processImageToNote", () => {
 		const mockFile = { buffer: "buffer", mimetype: "image/jpeg" };
 
-		test("Nên ném lỗi 500 nếu Cloudflare upload thất bại", async () => {
+		test("Nên báo lỗi (throw error) nếu upload lên Cloudflare R2 thất bại", async () => {
+			// 1. Giả lập Cloudflare bị sập
 			cloudflareService.uploadFileToR2.mockRejectedValue(new Error("CF Down"));
+
+			geminiService.generateNoteFromImage.mockResolvedValue({
+				title: "Mock",
+				content: "Mock",
+			});
+
+			// 2. Gọi hàm và ĐẢM BẢO bài test mong đợi một lỗi văng ra
 			await expect(
-				noteService.processImageToNote("user-1", mockFile),
-			).rejects.toThrow("Không thể tạo ghi chú");
+				noteService.processImageToNote("user-123", mockFile),
+			).rejects.toThrow("Không thể tạo ghi chú từ hình ảnh lúc này.");
 		});
 
 		test("Nên lưu Note rỗng nếu AI văng lỗi (Edge Case 1)", async () => {

@@ -8,32 +8,44 @@ const processImageToNote = async (userId, file) => {
 
 	try {
 		// 1. Upload ảnh lên Cloudflare (Nếu lỗi sẽ văng ra catch luôn)
-		imageUrl = await cloudflareService.uploadFileToR2(file, "notes");
+		// imageUrl = await cloudflareService.uploadFileToR2(file, "notes");
 
-		// 2. Gọi AI OCR
-		let noteTitle = "Ghi chú chưa có tiêu đề";
-		let noteContent = "";
+		// // 2. Gọi AI OCR
+		// let noteTitle = "Ghi chú chưa có tiêu đề";
+		// let noteContent = "";
 
-		try {
-			const aiGeneratedData = await geminiService.generateNoteFromImage(
-				file.buffer,
-				file.mimetype,
-			);
-			noteTitle = aiGeneratedData.title || noteTitle;
-			noteContent = aiGeneratedData.content || "";
-		} catch (aiError) {
-			console.error("AI OCR Failed, saving image anyway:", aiError);
-			// EDGE CASE 1: AI sập, nhưng ảnh đã lưu trên R2 -> Vẫn tạo Note rỗng cho user tự gõ
-			noteTitle = "Lỗi trích xuất (Cần cập nhật)";
-			noteContent = "Hệ thống AI đang bận, bạn vui lòng tự nhập nội dung nhé.";
-		}
+		// try {
+		// 	const aiGeneratedData = await geminiService.generateNoteFromImage(
+		// 		file.buffer,
+		// 		file.mimetype,
+		// 	);
+		// 	noteTitle = aiGeneratedData.title || noteTitle;
+		// 	noteContent = aiGeneratedData.content || "";
+		// } catch (aiError) {
+		// 	console.error("AI OCR Failed, saving image anyway:", aiError);
+		// 	// EDGE CASE 1: AI sập, nhưng ảnh đã lưu trên R2 -> Vẫn tạo Note rỗng cho user tự gõ
+		// 	noteTitle = "Lỗi trích xuất (Cần cập nhật)";
+		// 	noteContent = "Hệ thống AI đang bận, bạn vui lòng tự nhập nội dung nhé.";
+		// }
+		const [imageUrl, aiGeneratedData] = await Promise.all([
+			cloudflareService.uploadFileToR2(file, "notes"),
+			geminiService
+				.generateNoteFromImage(file.buffer, file.mimetype)
+				.catch((aiError) => {
+					console.error("AI OCR Failed:", aiError);
+					return {
+						title: "Lỗi trích xuất (Cần cập nhật)",
+						content: "Hệ thống AI đang bận, bạn vui lòng tự nhập nội dung.",
+					};
+				}),
+		]);
 
 		// 3. Tạo Note
 		const newNote = await prisma.note.create({
 			data: {
 				userId,
-				title: noteTitle,
-				content: noteContent,
+				title: aiGeneratedData.title,
+				content: aiGeneratedData.content,
 				status: "PENDING",
 				// folderId: KHÔNG ĐIỀN Ở ĐÂY, để nguyên là Chưa phân loại
 				images: {
@@ -110,7 +122,7 @@ const getNotesWithPagination = async (
 	pageNumber,
 	limitNumber,
 ) => {
-	// EDGE CASE 1: Client truyền lên một status vớ vẩn không có trong hệ thống
+	// EDGE CASE 1: Client truyền lên một status không có trong hệ thống
 
 	const validStatuses = ["PENDING", "ACTIONED", "ARCHIVED"];
 	if (status && !validStatuses.includes(status.toUpperCase())) {
@@ -123,7 +135,7 @@ const getNotesWithPagination = async (
 	if (status) {
 		whereCondition.status = status.toUpperCase(); // Đảm bảo luôn in hoa để khớp với Enum Database
 	}
-	console.log(whereCondition);
+
 	const [notes, totalCount] = await Promise.all([
 		prisma.note.findMany({
 			where: whereCondition,

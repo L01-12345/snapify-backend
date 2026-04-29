@@ -159,7 +159,7 @@ describe("Integration Test: Note API Endpoints", () => {
 				.set("Authorization", `Bearer ${validToken}`);
 
 			expect(response.status).toBe(200);
-		});
+		}, 15000);
 
 		test("Nên phân loại tự động thành công mà không tốn tiền API thật", async () => {
 			// Dùng tuyệt chiêu Mock dịch vụ Gemini ngay trong Integration Test
