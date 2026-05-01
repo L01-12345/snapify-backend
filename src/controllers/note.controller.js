@@ -84,13 +84,14 @@ const getNoteById = async (req, res, next) => {
 const updateNote = async (req, res, next) => {
 	try {
 		const { id } = req.params;
-		const { title, content, status } = req.body;
+		const { title, content, status, folderId } = req.body;
 		const validStatuses = ["NEW", "PROCESSED", "ARCHIVED"];
 
 		const updatedNote = await noteService.updateNoteData(id, req.user.id, {
 			title,
 			content,
 			status,
+			folderId,
 		});
 
 		return sendSuccess(res, 200, "Cập nhật ghi chú thành công", updatedNote);
