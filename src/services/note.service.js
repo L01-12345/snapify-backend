@@ -55,8 +55,8 @@ const processImageToNote = async (userId, file) => {
 						orderIndex: 0,
 					},
 				},
-				titleNoAccent: removeVietnameseTones(title),
-				contentNoAccent: removeVietnameseTones(content),
+				titleNoAccent: removeVietnameseTones(aiGeneratedData.title),
+				contentNoAccent: removeVietnameseTones(aiGeneratedData.content),
 			},
 			include: {
 				images: true,

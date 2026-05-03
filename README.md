@@ -205,7 +205,7 @@ Xem báo cáo độ phủ mã nguồn (Coverage Report) Kiểm tra xem các
 Controller/Service đã được test bao phủ bao nhiêu % số dòng code:
 
 ```Bash
-docker exec -it snapify_api npm run test:coverage
+docker exec -it snapify_api npm run test
 # Hoặc lệnh gốc: npx jest --coverage --runInBand
 ```
 
