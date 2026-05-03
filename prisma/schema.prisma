@@ -51,7 +51,7 @@ model User {
   avatarUrl            String?         @map("avatar_url") // Dấu ? thể hiện Nullable
   createdAt            DateTime        @default(now()) @map("created_at")
   updatedAt            DateTime        @updatedAt @map("updated_at")
-  bio         String?  @map("bio") @db.Text
+  bio                  String?         @map("bio") @db.Text
   resetPasswordOtp     String?
   resetPasswordExpires DateTime?
   // Relationships
@@ -89,6 +89,10 @@ model Note {
   status    NoteStatus @default(PENDING)
   createdAt DateTime   @default(now()) @map("created_at")
   updatedAt DateTime   @updatedAt @map("updated_at")
+
+  // Xử lý trường hợp không dấu
+  titleNoAccent   String?
+  contentNoAccent String?
 
   // Relationships
   user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
