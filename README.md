@@ -198,14 +198,14 @@ Chạy riêng một file Test cụ thể Khi bạn chỉ muốn tập trung debu
 Auth API):
 
 ```Bash
-docker exec -it snapify npx jest test/integrations/auth.api.test.js
+docker exec -it snapify_api npx jest test/integrations/auth.api.test.js
 ```
 
 Xem báo cáo độ phủ mã nguồn (Coverage Report) Kiểm tra xem các
 Controller/Service đã được test bao phủ bao nhiêu % số dòng code:
 
 ```Bash
-docker exec -it snapify npm run test:coverage
+docker exec -it snapify_api npm run test:coverage
 # Hoặc lệnh gốc: npx jest --coverage --runInBand
 ```
 

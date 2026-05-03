@@ -2,6 +2,7 @@
 const prisma = require("../utils/prisma.util");
 const cloudflareService = require("../services/cloudflare.service");
 const geminiService = require("../services/gemini.service");
+const removeVietnameseTones = require("../utils/string.util");
 
 const processImageToNote = async (userId, file) => {
 	let imageUrl = null;
@@ -54,6 +55,8 @@ const processImageToNote = async (userId, file) => {
 						orderIndex: 0,
 					},
 				},
+				titleNoAccent: removeVietnameseTones(title),
+				contentNoAccent: removeVietnameseTones(content),
 			},
 			include: {
 				images: true,
@@ -79,6 +82,7 @@ const searchUserNotes = async (userId, keyword) => {
 	// - Lọc bỏ các ký tự đặc biệt có thể làm sai lệch kết quả tìm kiếm (như %, #, *, [, ], v.v.)
 	// - trim() để xóa khoảng trắng thừa ở 2 đầu
 	const sanitizedKeyword = keyword.replace(/[#%^*_\[\]{}|<>\\]/g, "").trim();
+	const noAccentKeyword = removeVietnameseTones(sanitizedKeyword);
 
 	// EDGE CASE: Sau khi lọc sạch ký tự rác mà từ khóa bị rỗng (VD: user nhập "###")
 	if (!sanitizedKeyword) {
@@ -90,14 +94,17 @@ const searchUserNotes = async (userId, keyword) => {
 		where: {
 			userId,
 			OR: [
-				{ title: { contains: sanitizedKeyword } },
-				{ content: { contains: sanitizedKeyword } },
+				// Nhóm 1: Tìm chính xác từ có dấu
+				{ title: { contains: sanitizedKeyword, mode: "insensitive" } },
+				{ content: { contains: sanitizedKeyword, mode: "insensitive" } },
+
+				// Nhóm 2: Tìm theo không dấu
+				{ titleNoAccent: { contains: noAccentKeyword, mode: "insensitive" } },
+				{ contentNoAccent: { contains: noAccentKeyword, mode: "insensitive" } },
 			],
 		},
-		include: {
-			folder: true, // Thường khi search, user muốn biết note đó nằm ở folder nào
-		},
-		orderBy: { updatedAt: "desc" }, // Nên sắp xếp theo note mới cập nhật gần nhất
+		include: { folder: true },
+		orderBy: { updatedAt: "desc" },
 	});
 
 	// 4. LƯU LỊCH SỬ TÌM KIẾM THÔNG MINH
@@ -316,6 +323,8 @@ const createManualNote = async (userId, noteData) => {
 			content,
 			folderId: noteData.folderId || null,
 			status: "ACTIONED", // Ghi chú gõ tay mặc định xem như đã xử lý xong
+			titleNoAccent: removeVietnameseTones(title),
+			contentNoAccent: removeVietnameseTones(content),
 		},
 		include: {
 			folder: true,
