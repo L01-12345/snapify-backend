@@ -25,7 +25,7 @@ const snapToNote = async (req, res, next) => {
 			.processImageToNoteBackground(draftNote.id, userId, file)
 			.catch((err) => console.error("Lỗi AI ngầm:", err));
 
-		return sendSuccess(res, 202, "Xử lý hình ảnh và tạo ghi chú thành công", {
+		return sendSuccess(res, 202, "Đã nhận hình ảnh, AI đang xử lý", {
 			id: draftNote.id,
 		});
 	} catch (error) {

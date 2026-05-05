@@ -249,4 +249,59 @@ describe("Note Service Tests", () => {
 			);
 		});
 	});
+	// ==========================================
+	// TEST: processImageToNoteBackground (Background Job)
+	// ==========================================
+	describe("processImageToNoteBackground", () => {
+		const mockFile = { buffer: "buffer", mimetype: "image/jpeg" };
+
+		test("Nên update Note thành ACTIONED nếu AI và Cloudflare xử lý thành công", async () => {
+			cloudflareService.uploadFileToR2.mockResolvedValue("http://mock.url");
+			geminiService.generateNoteFromImage.mockResolvedValue({
+				title: "Bill",
+				content: "100$",
+			});
+			prisma.note.update.mockResolvedValue({}); // Mock DB update thành công
+
+			// Chạy hàm ngầm
+			await noteService.processImageToNoteBackground(
+				"note-1",
+				"user-1",
+				mockFile,
+			);
+
+			// Kỳ vọng Prisma update đúng trạng thái ACTIONED
+			expect(prisma.note.update).toHaveBeenCalledWith(
+				expect.objectContaining({
+					where: { id: "note-1" },
+					data: expect.objectContaining({
+						status: "ACTIONED",
+						title: "Bill",
+						content: "100$",
+					}),
+				}),
+			);
+		});
+
+		test("Nên update Note thành ARCHIVED/FAILED nếu AI hoặc R2 văng lỗi ngầm", async () => {
+			// Giả lập Cloudflare sập
+			cloudflareService.uploadFileToR2.mockRejectedValue(new Error("Lỗi mạng"));
+			prisma.note.update.mockResolvedValue({});
+
+			// Chạy hàm ngầm (nó sẽ rơi vào khối catch bên trong service)
+			await noteService.processImageToNoteBackground(
+				"note-1",
+				"user-1",
+				mockFile,
+			);
+
+			// Kỳ vọng Prisma update thành trạng thái báo lỗi (ARCHIVED hoặc FAILED tùy code của bạn)
+			expect(prisma.note.update).toHaveBeenCalledWith(
+				expect.objectContaining({
+					where: { id: "note-1" },
+					data: expect.objectContaining({ status: "ARCHIVED" }),
+				}),
+			);
+		});
+	});
 });
