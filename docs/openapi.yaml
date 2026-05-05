@@ -265,10 +265,33 @@ paths:
   # ====================================================
   # 3. NOTES ROUTES
   # ====================================================
+  # /notes/snap:
+  #   post:
+  #     tags: [Notes]
+  #     summary: Snap-to-Note (Upload image)
+  #     requestBody:
+  #       required: true
+  #       content:
+  #         multipart/form-data:
+  #           schema:
+  #             type: object
+  #             properties:
+  #               image:
+  #                 type: string
+  #                 format: binary
+  #     responses:
+  #       "201":
+  #         description: Image processed and Note created successfully
   /notes/snap:
     post:
       tags: [Notes]
-      summary: Snap-to-Note (Upload image)
+      summary: Snap-to-Note (Upload image - Background Processing)
+      description:
+        Upload an image. The system will create a draft and trigger AI
+        processing in the background. It returns an ID immediately so the Client
+        can perform Polling (call GET /notes/{id} every 3 seconds).
+      security:
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -279,10 +302,29 @@ paths:
                 image:
                   type: string
                   format: binary
+                  description: Image containing text to be extracted (JPG, PNG).
       responses:
-        "201":
-          description: Image processed and Note created successfully
-
+        "202":
+          description:
+            Image received successfully, AI is processing in the background.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Image received, AI is processing.
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        description: ID of the draft note.
+                        example: 123e4567-e89b-12d3-a456-426614174000
   /notes/search:
     get:
       tags: [Notes]

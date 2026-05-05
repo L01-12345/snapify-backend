@@ -1,5 +1,6 @@
 const { sendSuccess } = require("../utils/response.util");
 const noteService = require("../services/note.service");
+const prisma = require("../utils/prisma.util");
 
 const snapToNote = async (req, res, next) => {
 	try {
@@ -11,20 +12,22 @@ const snapToNote = async (req, res, next) => {
 			error.statusCode = 400;
 			throw error;
 		}
+		const draftNote = await prisma.note.create({
+			data: {
+				userId,
+				title: "Đang phân tích hình ảnh...",
+				status: "PENDING",
+			},
+		});
 
-		const newNote = await noteService.processImageToNote(userId, file);
+		// const newNote = await noteService.processImageToNote(userId, file);
+		noteService
+			.processImageToNoteBackground(draftNote.id, userId, file)
+			.catch((err) => console.error("Lỗi AI ngầm:", err));
 
-		const mockNote = {
-			id: "note_1",
-			title: "Trích xuất từ ảnh",
-			content: "Nội dung OCR demo...",
-		};
-		return sendSuccess(
-			res,
-			201,
-			"Xử lý hình ảnh và tạo ghi chú thành công",
-			newNote,
-		);
+		return sendSuccess(res, 202, "Xử lý hình ảnh và tạo ghi chú thành công", {
+			id: draftNote.id,
+		});
 	} catch (error) {
 		next(error);
 	}

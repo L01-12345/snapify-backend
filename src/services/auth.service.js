@@ -81,6 +81,9 @@ const processForgotPassword = async (email) => {
 
 	// 3. Cấu hình Nodemailer
 	const transporter = nodemailer.createTransport({
+		host: "smtp.gmail.com",
+		port: 465,
+		secure: true,
 		service: "gmail",
 		auth: {
 			user: process.env.EMAIL_USER, // VD: snapify.noreply@gmail.com
@@ -136,7 +139,7 @@ const resetPassword = async (email, otp, newPassword) => {
 		throw error;
 	}
 
-	// 5. Mọi thứ hợp lệ -> Tiến hành đổi mật khẩu mới
+	// 5. đổi mật khẩu mới
 	const salt = await bcrypt.genSalt(10);
 	const newPasswordHash = await bcrypt.hash(newPassword, salt);
 

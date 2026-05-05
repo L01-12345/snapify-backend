@@ -47,8 +47,7 @@ const processImageToNote = async (userId, file) => {
 				userId,
 				title: aiGeneratedData.title,
 				content: aiGeneratedData.content,
-				status: "PENDING",
-				// folderId: KHÔNG ĐIỀN Ở ĐÂY, để nguyên là Chưa phân loại
+				status: "ACTIONED",
 				images: {
 					create: {
 						imageUrl: imageUrl,
@@ -69,6 +68,44 @@ const processImageToNote = async (userId, file) => {
 		const err = new Error("Không thể tạo ghi chú từ hình ảnh lúc này.");
 		err.statusCode = 500;
 		throw err;
+	}
+};
+
+const processImageToNoteBackground = async (noteId, userId, file) => {
+	try {
+		// 1. Gọi AI và Cloudflare
+		const [imageUrl, aiGeneratedData] = await Promise.all([
+			cloudflareService.uploadFileToR2(file, "notes"),
+			geminiService
+				.generateNoteFromImage(file.buffer, file.mimetype)
+				.catch((aiError) => {
+					console.error("AI OCR Failed:", aiError);
+					return {
+						title: "Lỗi trích xuất (Cần cập nhật)",
+						content: "Hệ thống AI đang bận, bạn vui lòng tự nhập nội dung.",
+					};
+				}),
+		]);
+
+		// 2. AI Xong -> Update lại cái Note rỗng lúc nãy
+		await prisma.note.update({
+			where: { id: noteId },
+			data: {
+				title: aiGeneratedData.title,
+				content: aiGeneratedData.content,
+				status: "ACTIONED", // Đổi trạng thái để Frontend biết đã xong
+				images: { create: { imageUrl, orderIndex: 0 } },
+				titleNoAccent: removeVietnameseTones(aiGeneratedData.title),
+				contentNoAccent: removeVietnameseTones(aiGeneratedData.content),
+			},
+		});
+	} catch (error) {
+		console.error(`Lỗi xử lý ngầm Note ${noteId}:`, error);
+		// Nếu AI lỗi, update trạng thái thành FAILED để Frontend biết
+		await prisma.note.update({
+			where: { id: noteId },
+			data: { status: "ARCHIVED", title: "Lỗi phân tích hình ảnh" },
+		});
 	}
 };
 
@@ -416,4 +453,5 @@ module.exports = {
 	createManualNote,
 	deleteNote,
 	extractActionsFromNote,
+	processImageToNoteBackground,
 };
