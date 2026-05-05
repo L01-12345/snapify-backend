@@ -21,6 +21,17 @@ jest.mock("../../src/services/cloudflare.service");
 jest.mock("../../src/services/gemini.service");
 
 describe("Note Service Tests", () => {
+	// Giấu console.error đi để màn hình test xanh mướt, không bị in lỗi đỏ
+	beforeAll(() => {
+		jest.spyOn(console, "error").mockImplementation(() => {});
+		jest.spyOn(console, "warn").mockImplementation(() => {});
+	});
+
+	afterAll(() => {
+		console.error.mockRestore();
+		console.warn.mockRestore();
+	});
+
 	afterEach(() => {
 		jest.clearAllMocks();
 	});
@@ -32,15 +43,12 @@ describe("Note Service Tests", () => {
 		const mockFile = { buffer: "buffer", mimetype: "image/jpeg" };
 
 		test("Nên báo lỗi (throw error) nếu upload lên Cloudflare R2 thất bại", async () => {
-			// 1. Giả lập Cloudflare bị sập
 			cloudflareService.uploadFileToR2.mockRejectedValue(new Error("CF Down"));
-
 			geminiService.generateNoteFromImage.mockResolvedValue({
 				title: "Mock",
 				content: "Mock",
 			});
 
-			// 2. Gọi hàm và ĐẢM BẢO bài test mong đợi một lỗi văng ra
 			await expect(
 				noteService.processImageToNote("user-123", mockFile),
 			).rejects.toThrow("Không thể tạo ghi chú từ hình ảnh lúc này.");
@@ -69,12 +77,16 @@ describe("Note Service Tests", () => {
 			prisma.note.create.mockResolvedValue({ id: "note-1", title: "Bill" });
 
 			const result = await noteService.processImageToNote("user-1", mockFile);
+
+			// ĐÃ SỬA: Cập nhật status ACTIONED và thêm 2 cột NoAccent
 			expect(prisma.note.create).toHaveBeenCalledWith(
 				expect.objectContaining({
 					data: expect.objectContaining({
 						title: "Bill",
 						content: "100$",
-						status: "PENDING",
+						status: "ACTIONED",
+						titleNoAccent: "Bill",
+						contentNoAccent: "100$",
 					}),
 				}),
 			);
@@ -88,8 +100,7 @@ describe("Note Service Tests", () => {
 		test("Nên trả về rỗng nếu keyword null hoặc rác", async () => {
 			expect(await noteService.searchUserNotes("u1", null)).toEqual([]);
 			expect(await noteService.searchUserNotes("u1", "   ")).toEqual([]);
-			expect(await noteService.searchUserNotes("u1", "###%^")).toEqual([]); // Edge case kí tự đặc biệt
-			// Đảm bảo không gọi DB
+			expect(await noteService.searchUserNotes("u1", "###%^")).toEqual([]);
 			expect(prisma.note.findMany).not.toHaveBeenCalled();
 		});
 
@@ -141,7 +152,7 @@ describe("Note Service Tests", () => {
 	// ==========================================
 	describe("updateNoteData", () => {
 		beforeEach(() => {
-			prisma.note.findFirst.mockResolvedValue({ id: "n1" }); // Bypass check quyền
+			prisma.note.findFirst.mockResolvedValue({ id: "n1" });
 		});
 
 		test("Nên ném lỗi 400 nếu Status sai chuẩn", async () => {
@@ -151,17 +162,16 @@ describe("Note Service Tests", () => {
 		});
 
 		test("Nên ném lỗi 400 nếu truyền sai FolderId (Bảo mật)", async () => {
-			prisma.folder.findFirst.mockResolvedValue(null); // Giả lập Folder không thuộc về user
+			prisma.folder.findFirst.mockResolvedValue(null);
 			await expect(
 				noteService.updateNoteData("n1", "u1", { folderId: "f2" }),
 			).rejects.toThrow("Thư mục đích không tồn tại");
 		});
 
 		test("Nên update thành công và lọc bỏ trường nhạy cảm", async () => {
-			prisma.folder.findFirst.mockResolvedValue({ id: "f2" }); // Folder hợp lệ
+			prisma.folder.findFirst.mockResolvedValue({ id: "f2" });
 			prisma.note.update.mockResolvedValue({ id: "n1", title: "New" });
 
-			// Cố tình gửi userId, id, createdAt để xem service có xóa đi không
 			await noteService.updateNoteData("n1", "u1", {
 				id: "hack",
 				userId: "hack",
@@ -171,14 +181,14 @@ describe("Note Service Tests", () => {
 
 			expect(prisma.note.update).toHaveBeenCalledWith(
 				expect.objectContaining({
-					data: { title: "New", folderId: "f2" }, // Đã biến mất id, userId
+					data: { title: "New", folderId: "f2" },
 				}),
 			);
 		});
 	});
 
 	// ==========================================
-	// TEST: categorizeNoteWithAI (Rất nhiều nhánh)
+	// TEST: categorizeNoteWithAI
 	// ==========================================
 	describe("categorizeNoteWithAI", () => {
 		test("Nên trả về nguyên gốc nếu AI chập chờn (Edge Case 2)", async () => {
@@ -187,7 +197,7 @@ describe("Note Service Tests", () => {
 				userId: "u1",
 				content: "abc",
 			});
-			geminiService.suggestFolderForNote.mockResolvedValue(null); // AI lỗi
+			geminiService.suggestFolderForNote.mockResolvedValue(null);
 
 			const result = await noteService.categorizeNoteWithAI("n1");
 			expect(result.id).toBe("n1");
@@ -196,7 +206,7 @@ describe("Note Service Tests", () => {
 
 		test("Nên tự sửa lỗi Hallucination của AI (Edge Case 3)", async () => {
 			prisma.note.findUnique.mockResolvedValue({ id: "n1", userId: "u1" });
-			prisma.folder.findMany.mockResolvedValue([{ id: "f1" }]); // Có mỗi folder f1
+			prisma.folder.findMany.mockResolvedValue([{ id: "f1" }]);
 
 			geminiService.suggestFolderForNote.mockResolvedValue({
 				action: "USE_EXISTING",
@@ -226,7 +236,7 @@ describe("Note Service Tests", () => {
 
 		test("Nên tạo thành công Note tự do (không truyền folderId)", async () => {
 			prisma.note.create.mockResolvedValue({ id: "n1" });
-			await noteService.createManualNote("u1", { title: "  A  " }); // Cố tình truyền dư khoảng trắng
+			await noteService.createManualNote("u1", { title: "  A  " });
 
 			expect(prisma.note.create).toHaveBeenCalledWith(
 				expect.objectContaining({
@@ -234,7 +244,7 @@ describe("Note Service Tests", () => {
 						title: "A",
 						status: "ACTIONED",
 						folderId: null,
-					}), // Đã trim() khoảng trắng
+					}),
 				}),
 			);
 		});
