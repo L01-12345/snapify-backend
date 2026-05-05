@@ -213,4 +213,73 @@ describe("Integration Test: Note API Endpoints", () => {
 			expect(response.body.data).toHaveProperty("pagination");
 		});
 	});
+	// ==========================================
+	// KỊCH BẢN 8: TẠO GHI CHÚ BẰNG AI (POST /snap)
+	// ==========================================
+	describe("POST /api/notes/snap", () => {
+		test("Nên trả về 202 Accepted và ID bản nháp ngay lập tức (Fire & Forget)", async () => {
+			// Mock AI và Cloudflare để không gọi thật (Tránh tốn tiền và lỗi Timeout khi test)
+			const cloudflareService = require("../../src/services/cloudflare.service");
+			const geminiService = require("../../src/services/gemini.service");
+			jest
+				.spyOn(cloudflareService, "uploadFileToR2")
+				.mockResolvedValue("http://mock-url.com/image.jpg");
+			jest
+				.spyOn(geminiService, "generateNoteFromImage")
+				.mockResolvedValue({ title: "Mock AI", content: "Nội dung AI" });
+
+			const response = await request(app)
+				.post("/api/notes/snap")
+				.set("Authorization", `Bearer ${validToken}`)
+				.attach("image", Buffer.from("fake-image-content"), "test.jpg"); // Giả lập gửi file ảnh
+
+			expect(response.status).toBe(202);
+			expect(response.body.data).toHaveProperty("id");
+			expect(response.body.message).toContain("đang xử lý");
+
+			// Dọn dẹp mock
+			cloudflareService.uploadFileToR2.mockRestore();
+			geminiService.generateNoteFromImage.mockRestore();
+		});
+
+		test("Nên trả về lỗi 500 và nhảy vào next(error) nếu Database sập lúc tạo bản nháp", async () => {
+			// Giả lập DB bị lỗi ngay lúc tạo bản nháp PENDING
+			jest
+				.spyOn(prisma.note, "create")
+				.mockRejectedValue(new Error("Database Timeout"));
+
+			const response = await request(app)
+				.post("/api/notes/snap")
+				.set("Authorization", `Bearer ${validToken}`)
+				.attach("image", Buffer.from("fake-image"), "test.jpg");
+
+			expect(response.status).toBe(500);
+			prisma.note.create.mockRestore(); // Trả lại DB bình thường
+		});
+
+		test("Nên bắt và log lỗi ngầm (.catch) nếu service Background bị crash cứng", async () => {
+			// Giả lập việc hàm Background bị ném lỗi cứng
+			const noteService = require("../../src/services/note.service");
+			jest
+				.spyOn(noteService, "processImageToNoteBackground")
+				.mockRejectedValue(new Error("Crash Background"));
+
+			// Tắt console.error tạm thời để màn hình test không bị rác
+			const consoleSpy = jest
+				.spyOn(console, "error")
+				.mockImplementation(() => {});
+
+			const response = await request(app)
+				.post("/api/notes/snap")
+				.set("Authorization", `Bearer ${validToken}`)
+				.attach("image", Buffer.from("fake-image"), "test.jpg");
+
+			// Frontend VẪN NHẬN ĐƯỢC 202 vì lỗi xảy ra ở luồng chạy ngầm
+			expect(response.status).toBe(202);
+			expect(consoleSpy).toHaveBeenCalled(); // Xác nhận log lỗi đã chạy
+
+			noteService.processImageToNoteBackground.mockRestore();
+			consoleSpy.mockRestore();
+		});
+	});
 });

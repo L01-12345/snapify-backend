@@ -40,6 +40,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -53,17 +55,22 @@ jobs:
       - name: Generate Prisma Client
         run: npx prisma generate
 
-      # Bước then chốt: Đẩy cấu trúc bảng vào DB ảo của GitHub để chạy Integration Test
+      # Đẩy cấu trúc bảng vào DB ảo của GitHub để chạy Integration Test
       - name: Sync Database Schema
         run: npx prisma db push
 
       - name: Run All Tests with Coverage
         run: npm test -- --coverage
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@v5.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
   deploy:
     needs: test-suite # CHỈ CHẠY KHI TEST-SUITE THÀNH CÔNG
     if: github.ref == 'refs/heads/main' # CHỈ DEPLOY KHI PUSH VÀO NHÁNH MAIN
     runs-on: ubuntu-latest
     steps:
       - name: Trigger Render Deploy
-        # Sử dụng secret RENDER_DEPLOY_HOOK_URL bạn đã thêm vào Github Settings
         run: curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
