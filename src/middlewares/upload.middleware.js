@@ -35,9 +35,7 @@ const upload = multer({
 });
 
 const isTestEnvironment =
-	process.env.NODE_ENV === "test" ||
-	process.env.JEST_WORKER_ID !== undefined ||
-	process.env.TAP === "true";
+	process.env.NODE_ENV === "test" || process.env.TAP === "true";
 
 const isValidImageBuffer = (buffer, mimetype) => {
 	if (!buffer || !Buffer.isBuffer(buffer)) return false;
