@@ -2,7 +2,7 @@
 const express = require("express");
 const router = express.Router();
 const authMiddleware = require("../middlewares/auth.middleware");
-const upload = require("../middlewares/upload.middleware");
+const { uploadImage } = require("../middlewares/upload.middleware");
 const noteController = require("../controllers/note.controller");
 
 const validate = require("../middlewares/validate.middleware");
@@ -10,7 +10,7 @@ const noteValidation = require("../validations/note.validation");
 
 router.use(authMiddleware);
 
-router.post("/snap", upload.single("image"), noteController.snapToNote);
+router.post("/snap", uploadImage, noteController.snapToNote);
 
 router.get(
 	"/search",
@@ -20,7 +20,7 @@ router.get(
 
 router.get("/", noteController.getNotes);
 
-router.post("/", upload.single("image"), noteController.createNote);
+router.post("/", uploadImage, noteController.createNote);
 
 router.get("/:id", noteController.getNoteById);
 
