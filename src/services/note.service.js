@@ -362,7 +362,7 @@ const createManualNote = async (userId, noteData) => {
 		contentNoAccent: removeVietnameseTones(content),
 	};
 
-	if (noteData.imageUri) {
+	if (noteData.imageUrl) {
 		prismaData.images = {
 			create: {
 				imageUrl: noteData.imageUrl,

@@ -76,6 +76,43 @@ describe("Integration Test: Note API Endpoints", () => {
 			// Lưu lại ID để test tiếp
 			createdNoteId = response.body.data.id;
 		});
+		test("Nên tạo ghi chú bằng imageUrl truyền qua body (Phục hồi khi OCR lỗi)", async () => {
+			const response = await request(app)
+				.post("/api/notes")
+				.set("Authorization", `Bearer ${validToken}`)
+				.send({
+					title: "Ghi chú từ URL ảnh cũ",
+					content: "Người dùng tự nhập tay",
+					imageUrl: "http://old-image.com/img.jpg",
+				});
+
+			expect(response.status).toBe(201);
+			expect(response.body.data.title).toBe("Ghi chú từ URL ảnh cũ");
+		});
+
+		test("Nên tạo ghi chú thủ công có đính kèm file ảnh upload mới (multipart/form-data)", async () => {
+			// Mock dịch vụ Cloudflare để không up file thật
+			const cloudflareService = require("../../src/services/cloudflare.service");
+			jest
+				.spyOn(cloudflareService, "uploadFileToR2")
+				.mockResolvedValue("http://r2-image-url.com/img.jpg");
+
+			const response = await request(app)
+				.post("/api/notes")
+				.set("Authorization", `Bearer ${validToken}`)
+				.field("title", "Ghi chú có file ảnh")
+				.field("content", "Nội dung ghi chú")
+				.attach("image", Buffer.from("fake-image"), "test.jpg");
+
+			expect(response.status).toBe(201);
+			expect(response.body.data.title).toBe("Ghi chú có file ảnh");
+
+			// Đảm bảo hàm upload ảnh đã được gọi
+			expect(cloudflareService.uploadFileToR2).toHaveBeenCalled();
+
+			// Dọn dẹp mock
+			cloudflareService.uploadFileToR2.mockRestore();
+		});
 	});
 
 	// ==========================================
