@@ -248,6 +248,32 @@ describe("Note Service Tests", () => {
 				}),
 			);
 		});
+		test("Nên tạo Note thành công và đính kèm ảnh nếu có imageUrl (Trường hợp OCR lỗi)", async () => {
+			prisma.note.create.mockResolvedValue({
+				id: "n2",
+				images: [{ imageUrl: "http://mock.url" }],
+			});
+
+			await noteService.createManualNote("u1", {
+				title: "Note có ảnh",
+				imageUrl: "http://mock.url",
+			});
+
+			// Kỳ vọng Prisma được gọi với lệnh tạo nested table (images: { create: ... })
+			expect(prisma.note.create).toHaveBeenCalledWith(
+				expect.objectContaining({
+					data: expect.objectContaining({
+						title: "Note có ảnh",
+						images: {
+							create: {
+								imageUrl: "http://mock.url",
+								orderIndex: 0,
+							},
+						},
+					}),
+				}),
+			);
+		});
 	});
 	// ==========================================
 	// TEST: processImageToNoteBackground (Background Job)

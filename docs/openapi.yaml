@@ -386,6 +386,11 @@ paths:
                 folderId:
                   type: string
                   nullable: true
+                imageUrl:
+                  type: string
+                  nullable: true
+                  description: URL or path of the original image
+                  example: https://res.cloudinary.com/demo/image/upload/sample.jpg
       responses:
         "201":
           description: Note created successfully

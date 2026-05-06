@@ -1,6 +1,7 @@
 const { sendSuccess } = require("../utils/response.util");
 const noteService = require("../services/note.service");
 const prisma = require("../utils/prisma.util");
+const cloudflareService = require("../services/cloudflare.service");
 
 const snapToNote = async (req, res, next) => {
 	try {
@@ -135,12 +136,19 @@ const autoCategorize = async (req, res, next) => {
 const createNote = async (req, res, next) => {
 	try {
 		const userId = req.user.id;
-		const { title, content, folderId } = req.body;
+		const { title, content, folderId, imageUri } = req.body;
+
+		let finalImageUrl = imageUri || null;
+
+		if (req.file) {
+			finalImageUrl = await cloudflareService.uploadFileToR2(req.file, "notes");
+		}
 
 		const newNote = await noteService.createManualNote(userId, {
 			title,
 			content,
 			folderId,
+			imageUrl: finalImageUrl,
 		});
 
 		return sendSuccess(res, 201, "Tạo ghi chú thủ công thành công", newNote);

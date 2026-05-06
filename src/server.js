@@ -13,7 +13,7 @@ async function startServer() {
 		console.log("Connected to MySQL Database successfully.");
 
 		// 2. Chạy server Express
-		app.listen(PORT, () => {
+		app.listen(PORT, "0.0.0.0", () => {
 			console.log(`Snapify Server is running on port ${PORT}`);
 			console.log(`Swagger Docs: http://localhost:${PORT}/api-docs`);
 		});

@@ -20,7 +20,7 @@ router.get(
 
 router.get("/", noteController.getNotes);
 
-router.post("/", noteController.createNote);
+router.post("/", upload.single("image"), noteController.createNote);
 
 router.get("/:id", noteController.getNoteById);
 
