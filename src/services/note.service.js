@@ -352,21 +352,47 @@ const createManualNote = async (userId, noteData) => {
 			throw error;
 		}
 	}
+	const prismaData = {
+		userId,
+		title,
+		content,
+		folderId: noteData.folderId || null,
+		status: "ACTIONED",
+		titleNoAccent: removeVietnameseTones(title),
+		contentNoAccent: removeVietnameseTones(content),
+	};
+
+	if (noteData.imageUri) {
+		prismaData.images = {
+			create: {
+				imageUrl: noteData.imageUrl,
+				orderIndex: 0,
+			},
+		};
+	}
 
 	return await prisma.note.create({
-		data: {
-			userId,
-			title,
-			content,
-			folderId: noteData.folderId || null,
-			status: "ACTIONED", // Ghi chú gõ tay mặc định xem như đã xử lý xong
-			titleNoAccent: removeVietnameseTones(title),
-			contentNoAccent: removeVietnameseTones(content),
-		},
+		data: prismaData,
 		include: {
 			folder: true,
+			images: true,
 		},
 	});
+
+	// return await prisma.note.create({
+	// 	data: {
+	// 		userId,
+	// 		title,
+	// 		content,
+	// 		folderId: noteData.folderId || null,
+	// 		status: "ACTIONED",
+	// 		titleNoAccent: removeVietnameseTones(title),
+	// 		contentNoAccent: removeVietnameseTones(content),
+	// 	},
+	// 	include: {
+	// 		folder: true,
+	// 	},
+	// });
 };
 
 // =========================================================
