@@ -49,6 +49,10 @@ const isValidImageBuffer = async (buffer, mimetype) => {
 		if (mimetype === "image/jpg" && metadata.format !== "jpeg") return false; // jpg cũng là jpeg
 		return true;
 	} catch (error) {
+		console.error(
+			"[Upload Middleware] Lỗi khi xác thực nội dung file ảnh:",
+			error.message,
+		);
 		return false;
 	}
 };
