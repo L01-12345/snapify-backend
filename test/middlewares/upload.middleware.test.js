@@ -24,9 +24,10 @@ describe("Upload Middleware", () => {
 		const uploadMiddleware = require("../../src/middlewares/upload.middleware");
 		const app = createApp(uploadMiddleware.uploadImage);
 
-		const jpegBuffer = Buffer.from([
-			0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46,
-		]);
+		// Sử dụng buffer ảnh JPEG thực nhỏ (1x1 pixel)
+		const jpegBase64 =
+			"/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/2wBDAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwA/AB//2Q==";
+		const jpegBuffer = Buffer.from(jpegBase64, "base64");
 
 		const response = await request(app)
 			.post("/upload")

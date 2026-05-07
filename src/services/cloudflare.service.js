@@ -42,10 +42,6 @@ const uploadFileToR2 = async (file, folder = "uploads") => {
 				}),
 			);
 
-			// Nếu không văng lỗi -> File ĐÃ TỒN TẠI
-			console.log(
-				`[Deduplication] Ảnh đã tồn tại, tái sử dụng URL: ${fileName}`,
-			);
 			return `${process.env.R2_PUBLIC_URL}/${fileName}`;
 		} catch (headError) {
 			// Bắt lỗi NotFound (Mã lỗi 404) -> File CHƯA TỒN TẠI -> Đi tiếp xuống bước Upload

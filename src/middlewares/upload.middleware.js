@@ -1,6 +1,7 @@
 // src/middlewares/upload.middleware.js
 const multer = require("multer");
 const path = require("path");
+const sharp = require("sharp");
 
 const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/jpg"];
 const ALLOWED_EXTENSIONS = [".jpeg", ".jpg", ".png"];
@@ -37,32 +38,33 @@ const upload = multer({
 const isTestEnvironment =
 	process.env.NODE_ENV === "test" || process.env.TAP === "true";
 
-const isValidImageBuffer = (buffer, mimetype) => {
+const isValidImageBuffer = async (buffer, mimetype) => {
 	if (!buffer || !Buffer.isBuffer(buffer)) return false;
 
-	const signature = buffer.slice(0, 8);
-
-	if (mimetype === "image/png") {
-		return signature.equals(
-			Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
-		);
+	try {
+		const metadata = await sharp(buffer).metadata();
+		// Kiểm tra format khớp với mimetype
+		if (mimetype === "image/jpeg" && metadata.format !== "jpeg") return false;
+		if (mimetype === "image/png" && metadata.format !== "png") return false;
+		if (mimetype === "image/jpg" && metadata.format !== "jpeg") return false; // jpg cũng là jpeg
+		return true;
+	} catch (error) {
+		return false;
 	}
-
-	if (mimetype === "image/jpeg" || mimetype === "image/jpg") {
-		return signature[0] === 0xff && signature[1] === 0xd8;
-	}
-
-	return false;
 };
 
-const uploadImage = (req, res, next) => {
-	upload.single("image")(req, res, (err) => {
+const uploadImage = async (req, res, next) => {
+	upload.single("image")(req, res, async (err) => {
 		if (err) {
 			return next(err);
 		}
 
 		if (req.file && !isTestEnvironment) {
-			if (!isValidImageBuffer(req.file.buffer, req.file.mimetype)) {
+			const isValid = await isValidImageBuffer(
+				req.file.buffer,
+				req.file.mimetype,
+			);
+			if (!isValid) {
 				const error = new Error(
 					"Nội dung file không hợp lệ. Vui lòng upload ảnh JPG/PNG.",
 				);
